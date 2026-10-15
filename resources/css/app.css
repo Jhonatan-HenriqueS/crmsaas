@@ -141,3 +141,18 @@
         @apply bg-background text-foreground;
     }
 }
+
+.registration-page,
+.login-page {
+    --auth-bg: #666177;
+    --auth-panel: #2c2638;
+    --auth-field: #3c364c;
+    --auth-primary: #6d54b5;
+    --auth-primary-hover: #7c63c5;
+    --auth-visual: #584aa5;
+    --auth-text: #f1f1f3;
+    --auth-muted: #bdb7cb;
+    --auth-border: #51495f;
+    --auth-focus: #c7b5f3;
+    --auth-error: #ffb4c0;
+}

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200" fill="none">
+<defs>
+<linearGradient id="sky" x1="300" y1="0" x2="700" y2="1000" gradientUnits="userSpaceOnUse"><stop stop-color="#6756b4"/><stop offset=".5" stop-color="#493b87"/><stop offset="1" stop-color="#211c33"/></linearGradient>
+<linearGradient id="far" x1="400" y1="310" x2="550" y2="790" gradientUnits="userSpaceOnUse"><stop stop-color="#817187"/><stop offset=".5" stop-color="#4d415d"/><stop offset="1" stop-color="#211c33"/></linearGradient>
+<linearGradient id="near" x1="700" y1="440" x2="300" y2="1000" gradientUnits="userSpaceOnUse"><stop stop-color="#352b4c"/><stop offset=".5" stop-color="#171222"/><stop offset="1" stop-color="#30253c"/></linearGradient>
+<linearGradient id="ridge" x1="200" y1="600" x2="650" y2="1000" gradientUnits="userSpaceOnUse"><stop stop-color="#665365"/><stop offset=".26" stop-color="#49374f"/><stop offset=".55" stop-color="#21192e"/><stop offset="1" stop-color="#100e1d"/></linearGradient>
+<linearGradient id="shade" x1="450" y1="750" x2="450" y2="1200" gradientUnits="userSpaceOnUse"><stop stop-color="#171222" stop-opacity="0"/><stop offset="1" stop-color="#171222" stop-opacity=".9"/></linearGradient>
+<filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".65" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope=".035"/></feComponentTransfer><feBlend mode="soft-light" in2="SourceGraphic"/></filter>
+</defs>
+<g filter="url(#grain)">
+<path fill="url(#sky)" d="M0 0H900V1200H0z"/>
+<path d="M0 440C166 412 245 321 360 345C483 370 547 410 674 370C750 409 829 443 900 459V1200H0Z" fill="url(#far)"/>
+<path d="M0 608C245 555 441 428 674 370C625 471 685 520 900 580V1200H0Z" fill="url(#near)"/>
+<path d="M0 740C240 712 344 564 489 597C657 635 741 731 900 715V1200H0Z" fill="url(#ridge)"/>
+<path d="M0 972C284 754 581 928 900 799V1200H0Z" fill="#171322"/>
+<path d="M0 742C240 713 345 565 489 598" stroke="#b09aa2" stroke-opacity=".22"/>
+<path fill="url(#shade)" d="M0 650H900V1200H0z"/>
+</g>
+</svg>

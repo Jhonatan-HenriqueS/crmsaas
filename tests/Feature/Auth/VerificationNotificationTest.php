@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Notification;
 use Laravel\Fortify\Features;
 
 beforeEach(function () {
+    config(['auth.email_verification_required' => true]);
     $this->skipUnlessFortifyHas(Features::emailVerification());
 });
 

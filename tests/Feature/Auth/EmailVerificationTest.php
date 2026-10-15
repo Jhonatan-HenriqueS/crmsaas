@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\URL;
 use Laravel\Fortify\Features;
 
 beforeEach(function () {
+    config(['auth.email_verification_required' => true]);
     $this->skipUnlessFortifyHas(Features::emailVerification());
 });
 
