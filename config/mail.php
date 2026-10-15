@@ -1,5 +1,7 @@
 <?php
 
+$defaultMailer = env('MAIL_MAILER', 'array');
+
 return [
 
     /*
@@ -11,10 +13,12 @@ return [
     | messages unless another mailer is explicitly specified when sending
     | the message. All additional mailers can be configured within the
     | "mailers" array. Examples of each type of mailer are provided.
+    | Authentication messages contain bearer links, so a logging default
+    | is replaced with the in-memory transport until delivery is configured.
     |
     */
 
-    'default' => env('MAIL_MAILER', 'log'),
+    'default' => $defaultMailer === 'log' ? 'array' : $defaultMailer,
 
     /*
     |--------------------------------------------------------------------------
@@ -83,7 +87,6 @@ return [
             'transport' => 'failover',
             'mailers' => [
                 'smtp',
-                'log',
             ],
             'retry_after' => 60,
         ],

@@ -2,7 +2,9 @@
 
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Password;
 use Laravel\Fortify\Features;
 
 beforeEach(function () {
@@ -75,4 +77,34 @@ test('password cannot be reset with invalid token', function () {
     ]);
 
     $response->assertSessionHasErrors('email');
+});
+
+test('password reset rejects passwords that cannot be submitted to login', function () {
+    $user = User::factory()->create();
+    $token = Password::broker()->createToken($user);
+    $password = str_repeat('a', 129);
+    $previousHash = $user->password;
+
+    $this->post(route('password.update'), [
+        'token' => $token,
+        'email' => $user->email,
+        'password' => $password,
+        'password_confirmation' => $password,
+    ])->assertSessionHasErrors(['password' => 'Esta senha é muito longa. Escolha uma senha menor.']);
+
+    expect($user->fresh()->password)->toBe($previousHash);
+    $this->assertGuest();
+});
+
+test('password reset hashes even an input that resembles an encoded password', function () {
+    $user = User::factory()->create();
+    $token = Password::broker()->createToken($user);
+    $password = Hash::make('a different known password');
+
+    $this->post(route('password.update'), [
+        'token' => $token, 'email' => $user->email,
+        'password' => $password, 'password_confirmation' => $password,
+    ])->assertSessionHasNoErrors()->assertRedirect(route('login'));
+
+    expect(Hash::check($password, $user->fresh()->password))->toBeTrue();
 });

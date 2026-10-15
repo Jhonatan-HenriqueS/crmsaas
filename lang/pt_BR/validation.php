@@ -46,6 +46,11 @@ return [
     'string' => 'O campo :attribute deve ser um texto.',
     'unique' => 'Este :attribute já está cadastrado.',
     'url' => 'O campo :attribute deve ser uma URL válida.',
+    'custom' => [
+        'password' => [
+            'max' => 'Esta senha é muito longa. Escolha uma senha menor.',
+        ],
+    ],
     'attributes' => [
         'name' => 'nome',
         'email' => 'e-mail',

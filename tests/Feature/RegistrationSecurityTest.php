@@ -4,6 +4,7 @@ use App\Models\Account;
 use App\Models\Membership;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
@@ -95,6 +96,33 @@ test('registration rejects an already registered email', function () {
     $this->assertDatabaseCount('users', 1);
     $this->assertModelExists($user);
     $this->assertDatabaseCount('accounts', 0);
+    Http::assertSentCount(1);
+});
+
+test('registration rejects a non scalar email before fortify normalizes it', function () {
+    Http::preventStrayRequests();
+
+    $this->postJson(route('register.store'), registrationData(['email' => ['maria@example.test']]))
+        ->assertUnprocessable()->assertJsonValidationErrors('email');
+
+    $this->assertGuest();
+    $this->assertDatabaseCount('users', 0);
+    Http::assertNothingSent();
+});
+
+test('the database rejects duplicate emails even without request validation', function () {
+    User::factory()->create(['email' => 'unique@example.test']);
+
+    expect(fn () => User::factory()->create(['email' => 'unique@example.test']))->toThrow(QueryException::class);
+});
+
+test('registration json returns no user data or credentials', function () {
+    fakePasswordCheck();
+
+    $this->postJson(route('register.store'), registrationData())->assertCreated()->assertContent('""');
+
+    $this->assertAuthenticated();
+    $this->assertDatabaseCount('memberships', 1);
     Http::assertSentCount(1);
 });
 

@@ -95,3 +95,26 @@ test('correct password must be provided to update password', function () {
         ->assertSessionHasErrors('current_password')
         ->assertRedirect(route('security.edit'));
 });
+
+test('password update hashes an encoded looking password as literal input', function () {
+    $user = User::factory()->create();
+    $password = Hash::make('a different known password');
+
+    $this->actingAs($user)->put(route('user-password.update'), [
+        'current_password' => 'password', 'password' => $password, 'password_confirmation' => $password,
+    ])->assertSessionHasNoErrors();
+
+    expect(Hash::check($password, $user->fresh()->password))->toBeTrue();
+});
+
+test('password update refuses a password longer than the login limit', function () {
+    $user = User::factory()->create();
+    $password = str_repeat('a', 129);
+    $previousHash = $user->password;
+
+    $this->actingAs($user)->put(route('user-password.update'), [
+        'current_password' => 'password', 'password' => $password, 'password_confirmation' => $password,
+    ])->assertSessionHasErrors(['password' => 'Esta senha é muito longa. Escolha uma senha menor.']);
+
+    expect($user->fresh()->password)->toBe($previousHash);
+});

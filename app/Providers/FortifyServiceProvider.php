@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Http\Middleware\EnsureSafeAuthenticationRedirect;
+use App\Http\Middleware\ValidateRegistrationEmail;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Models\Account;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -42,7 +43,7 @@ class FortifyServiceProvider extends ServiceProvider
 
         $this->app->booted(function (): void {
             Route::getRoutes()->refreshNameLookups();
-            Route::getRoutes()->getByName('register.store')?->middleware('throttle:registration');
+            Route::getRoutes()->getByName('register.store')?->middleware(['throttle:registration', ValidateRegistrationEmail::class]);
 
             foreach (['login.store', 'two-factor.login.store'] as $routeName) {
                 Route::getRoutes()->getByName($routeName)?->middleware(EnsureSafeAuthenticationRedirect::class);

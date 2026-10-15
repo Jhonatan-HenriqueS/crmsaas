@@ -5,6 +5,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Fortify\Features;
+use PragmaRX\Google2FA\Google2FA;
 
 test('invalid credentials do not reveal whether an email exists', function (bool $existing) {
     $email = 'login@example.test';
@@ -20,6 +21,15 @@ test('invalid credentials do not reveal whether an email exists', function (bool
 
     $this->assertGuest();
 })->with(['registered email' => true, 'unknown email' => false]);
+
+test('successful json login returns only the native authentication result', function () {
+    $user = User::factory()->create();
+
+    $this->postJson(route('login.store'), ['email' => $user->email, 'password' => 'password'])
+        ->assertOk()->assertExactJson(['two_factor' => false]);
+
+    $this->assertAuthenticatedAs($user);
+});
 
 test('login validates malformed inputs without attempting authentication', function (array $input, string $field, string $message) {
     $this->post(route('login.store'), $input)->assertSessionHasErrors([$field => $message]);
@@ -112,6 +122,18 @@ test('login discards untrusted intended redirects', function (mixed $destination
     'different port' => 'http://localhost:9001/settings/profile',
     'control character' => "/\nuntrusted.example/",
     'malformed session value' => [['url' => 'https://untrusted.example/']],
+    'data scheme' => 'data:text/html,untrusted',
+    'encoded absolute URL' => 'https%3A%2F%2Funtrusted.example%2F',
+    'double encoded absolute URL' => 'https%253A%252F%252Funtrusted.example%252F',
+    'encoded protocol relative path' => '/%2funtrusted.example/',
+    'encoded backslash' => '/%5cuntrusted.example/',
+    'encoded control character' => '/%0auntrusted.example/',
+    'deceptive host suffix' => 'http://localhost.untrusted.example/settings/profile',
+    'untrusted subdomain' => 'http://admin.localhost/settings/profile',
+    'userinfo on trusted host' => 'http://untrusted@localhost/settings/profile',
+    'trusted host as userinfo' => 'http://localhost@untrusted.example/settings/profile',
+    'different scheme' => 'https://localhost/settings/profile',
+    'invalid port' => 'http://localhost:99999/settings/profile',
 ]);
 
 test('login preserves a destination on the same origin', function (bool $absolute) {
@@ -123,6 +145,16 @@ test('login preserves a destination on the same origin', function (bool $absolut
         'password' => 'password',
     ])->assertRedirect(route('profile.edit'));
 })->with(['absolute URL' => true, 'relative URL' => false]);
+
+test('login preserves internal query and fragment after validating a normalized origin', function () {
+    $user = User::factory()->create();
+
+    $destination = str_replace('localhost', 'LOCALHOST', route('profile.edit')).'?section=contact#email';
+
+    $this->withSession(['url.intended' => $destination])
+        ->post(route('login.store'), ['email' => $user->email, 'password' => 'password'])
+        ->assertRedirect(route('profile.edit').'?section=contact#email');
+});
 
 test('inertia shares only public user fields even when private attributes and relations are loaded', function () {
     $own = Membership::factory()->create();
@@ -182,4 +214,21 @@ test('two factor recovery authenticates once and rejects external redirects', fu
         'recovery_code' => 'recovery-code-1',
     ])->assertSessionHasErrors('recovery_code');
     $this->assertGuest();
+});
+
+test('two factor otp rejects an invalid code and accepts a valid authenticator code', function () {
+    $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
+    $authenticator = app(Google2FA::class);
+    $secret = $authenticator->generateSecretKey();
+    $user = User::factory()->withTwoFactor()->create(['two_factor_secret' => encrypt($secret)]);
+    $this->post(route('login.store'), ['email' => $user->email, 'password' => 'password'])
+        ->assertRedirect(route('two-factor.login'));
+
+    $this->post(route('two-factor.login.store'), ['code' => 'invalid-otp'])->assertSessionHasErrors('code');
+    $this->assertGuest();
+
+    $this->post(route('two-factor.login.store'), ['code' => $authenticator->getCurrentOtp($secret)])
+        ->assertRedirect(route('dashboard', absolute: false))->assertSessionMissing('login.id');
+
+    $this->assertAuthenticatedAs($user);
 });
