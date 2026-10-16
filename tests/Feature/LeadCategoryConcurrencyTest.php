@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\Process\Process;
 
-test('two validated concurrent category requests produce one insert and one controlled duplicate error', function () {
+test('two validated concurrent category writes preserve uniqueness and return one controlled duplicate error', function (string $method) {
     $directory = storage_path('framework/testing/category-race-'.bin2hex(random_bytes(8)));
     mkdir($directory, 0700, true);
     $database = $directory.'/test.sqlite';
@@ -24,6 +24,12 @@ test('two validated concurrent category requests produce one insert and one cont
         $membership = Membership::on('category_race')->create([
             'account_id' => $account->id, 'user_id' => $user->id, 'role' => 'owner',
         ]);
+        $categoryIds = [];
+        if ($method === 'PATCH') {
+            foreach (['#112233', '#445566'] as $i => $color) {
+                $categoryIds[] = $account->leadCategories()->create(['name' => 'Original '.$i, 'color' => $color])->id;
+            }
+        }
         $script = <<<'PHP'
             require 'vendor/autoload.php';
             $app = require 'bootstrap/app.php';
@@ -32,7 +38,8 @@ test('two validated concurrent category requests produce one insert and one cont
             config(['database.connections.sqlite.busy_timeout' => 5000, 'inertia.ssr.enabled' => false]);
             Illuminate\Support\Facades\DB::purge('sqlite');
             Illuminate\Support\Facades\Http::preventStrayRequests();
-            App\Models\LeadCategory::creating(function (): void {
+            $event = getenv('CATEGORY_RACE_METHOD') === 'PATCH' ? 'updating' : 'creating';
+            App\Models\LeadCategory::{$event}(function (): void {
                 $ready = getenv('CATEGORY_RACE_DIRECTORY').'/ready-'.getenv('CATEGORY_RACE_INDEX');
                 touch($ready);
                 chmod($ready, 0600);
@@ -42,7 +49,8 @@ test('two validated concurrent category requests produce one insert and one cont
                     usleep(1000);
                 }
             });
-            $request = Illuminate\Http\Request::create('/categorias', 'POST', [], [], [],
+            $path = '/categorias'.(getenv('CATEGORY_RACE_METHOD') === 'PATCH' ? '/'.getenv('CATEGORY_RACE_CATEGORY') : '');
+            $request = Illuminate\Http\Request::create($path, getenv('CATEGORY_RACE_METHOD'), [], [], [],
                 ['HTTP_ACCEPT' => 'application/json', 'CONTENT_TYPE' => 'application/json'],
                 json_encode(['name' => 'Concorrente', 'color' => getenv('CATEGORY_RACE_INDEX') === '0' ? '#7c65c1' : '#7C65C1']));
             $app->instance('request', $request);
@@ -59,6 +67,7 @@ test('two validated concurrent category requests produce one insert and one cont
                 'LOG_CHANNEL' => '"null"', 'APP_CONFIG_CACHE' => $directory.'/config.php',
                 'CATEGORY_RACE_DIRECTORY' => $directory, 'CATEGORY_RACE_INDEX' => (string) $i,
                 'CATEGORY_RACE_USER' => (string) $membership->user_id,
+                'CATEGORY_RACE_METHOD' => $method, 'CATEGORY_RACE_CATEGORY' => (string) ($categoryIds[$i] ?? 0),
             ]);
             $worker->setTimeout(25);
             $worker->start();
@@ -87,9 +96,13 @@ test('two validated concurrent category requests produce one insert and one cont
         expect(collect($responses)->pluck('status')->sort()->values()->all())->toBe([302, 422]);
         $duplicate = collect($responses)->firstWhere('status', 422);
         expect($duplicate['body']['errors']['color'][0])->toBe('Esta cor já está sendo utilizada por outra categoria. Escolha uma cor diferente.');
-        expect(DB::connection('category_race')->table('lead_categories')->count())->toBe(1);
-        expect(DB::connection('category_race')->table('lead_categories')->sole()->account_id)->toBe($membership->account_id);
-        expect(DB::connection('category_race')->table('lead_categories')->sole()->color)->toBe('#7c65c1');
+        $records = DB::connection('category_race')->table('lead_categories')->get();
+        expect($records)->toHaveCount($method === 'PATCH' ? 2 : 1);
+        expect($records->where('color', '#7c65c1'))->toHaveCount(1);
+        expect($records->pluck('account_id')->unique()->all())->toBe([$membership->account_id]);
+        if ($method === 'PATCH') {
+            expect($records->where('color', '!=', '#7c65c1')->sole()->name)->toStartWith('Original ');
+        }
     } finally {
         foreach ($workers as $worker) {
             if ($worker->isRunning()) {
@@ -99,4 +112,4 @@ test('two validated concurrent category requests produce one insert and one cont
         DB::purge('category_race');
         File::deleteDirectory($directory);
     }
-});
+})->with(['create' => 'POST', 'update' => 'PATCH']);

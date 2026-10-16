@@ -1,7 +1,7 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { ArrowLeft, ArrowRight, Tags } from 'lucide-react';
 import { CategoryCard } from '@/components/categories/category-card';
-import { CreateCategoryDialog } from '@/components/categories/create-category-dialog';
+import { CategoryDialog } from '@/components/categories/category-dialog';
 import {
     dashboardCardClass,
     formatCount,
@@ -19,6 +19,7 @@ type Props = {
 
 export default function Categories({ categories, initialColor }: Props) {
     const { auth } = usePage().props;
+    const visibleColors = categories.data.map((category) => category.color);
     // Synthetic examples only. These values never query leads or represent account activity.
     const examples = categories.data.map((category) => ({
         category,
@@ -61,11 +62,10 @@ export default function Categories({ categories, initialColor }: Props) {
                                 categorias e cores.
                             </p>
                         </div>
-                        <CreateCategoryDialog
+                        <CategoryDialog
+                            mode="create"
                             initialColor={initialColor}
-                            visibleColors={categories.data.map(
-                                (category) => category.color,
-                            )}
+                            visibleColors={visibleColors}
                         />
                     </header>
                     {categories.data.length === 0 ? (
@@ -111,6 +111,7 @@ export default function Categories({ categories, initialColor }: Props) {
                                     <CategoryCard
                                         key={category.id}
                                         category={category}
+                                        visibleColors={visibleColors}
                                         exampleCount={count}
                                         exampleTotal={exampleTotal}
                                     />

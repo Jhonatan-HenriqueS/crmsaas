@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\FlashCrudSuccess;
 use App\Http\CurrentAccount;
+use App\Http\Requests\MutateLeadCategoryRequest;
 use App\Http\Requests\StoreLeadCategoryRequest;
 use App\Models\Account;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -48,6 +49,39 @@ class LeadCategoryController extends Controller
         }
 
         FlashCrudSuccess::created('Categoria', feminine: true);
+
+        return to_route('categories.index');
+    }
+
+    public function update(MutateLeadCategoryRequest $request): RedirectResponse
+    {
+        $category = $request->category();
+        $category->fill($request->safe()->only(['name', 'color']));
+
+        if ($category->isDirty()) {
+            try {
+                $category->save();
+            } catch (UniqueConstraintViolationException $exception) {
+                if ($exception->columns !== ['account_id', 'color']) {
+                    throw $exception;
+                }
+
+                throw ValidationException::withMessages([
+                    'color' => 'Esta cor já está sendo utilizada por outra categoria. Escolha uma cor diferente.',
+                ]);
+            }
+
+            FlashCrudSuccess::updated('Categoria', feminine: true);
+        }
+
+        return to_route('categories.index');
+    }
+
+    public function destroy(MutateLeadCategoryRequest $request): RedirectResponse
+    {
+        abort_unless($request->category()->deleteOrFail(), 409);
+
+        FlashCrudSuccess::deleted('Categoria', feminine: true);
 
         return to_route('categories.index');
     }

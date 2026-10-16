@@ -1,6 +1,6 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-@import "tw-animate-css";
+@import 'tw-animate-css';
 
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
@@ -9,9 +9,9 @@
 
 @theme {
     --font-sans:
-        "Instrument Sans", ui-sans-serif, system-ui, sans-serif,
-        "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
-        "Noto Color Emoji";
+        'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -310,7 +310,7 @@ html:has(.dashboard-theme) {
     --normal-text: #ffd5df;
 }
 
-.toaster [data-sonner-toast][data-styled="true"] {
+.toaster [data-sonner-toast][data-styled='true'] {
     padding-right: 48px;
     border: 0;
     border-radius: 12px;
@@ -318,7 +318,7 @@ html:has(.dashboard-theme) {
     box-shadow: 0 8px 28px #00000033;
 }
 
-.toaster [data-sonner-toast][data-styled="true"] [data-close-button] {
+.toaster [data-sonner-toast][data-styled='true'] [data-close-button] {
     top: 12px;
     right: 12px;
     left: auto;
@@ -331,12 +331,12 @@ html:has(.dashboard-theme) {
 }
 
 .toaster
-    [data-sonner-toast][data-styled="true"]
+    [data-sonner-toast][data-styled='true']
     [data-close-button]:focus-visible {
     outline: 2px solid currentColor;
     outline-offset: 2px;
 }
 
-.toaster [data-sonner-toast][data-removed="true"] {
+.toaster [data-sonner-toast][data-removed='true'] {
     transition: none;
 }

@@ -10,6 +10,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Unique;
 use Illuminate\Validation\Validator;
 
 class StoreLeadCategoryRequest extends FormRequest
@@ -44,10 +45,15 @@ class StoreLeadCategoryRequest extends FormRequest
             'name' => ['bail', 'required', 'string', 'max:120', 'regex:/\A[^\p{C}]+\z/u'],
             'color' => [
                 'bail', 'required', 'string', 'regex:/\A#[0-9a-f]{6}\z/',
-                Rule::unique(LeadCategory::class, 'color')
-                    ->where('account_id', app(CurrentAccount::class)->get()->id),
+                $this->colorUniqueRule(),
             ],
         ];
+    }
+
+    protected function colorUniqueRule(): Unique
+    {
+        return Rule::unique(LeadCategory::class, 'color')
+            ->where('account_id', app(CurrentAccount::class)->get()->id);
     }
 
     /** @return array<string, string> */

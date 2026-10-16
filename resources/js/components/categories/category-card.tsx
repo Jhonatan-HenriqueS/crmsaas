@@ -1,10 +1,10 @@
-import { Pencil, Trash2 } from 'lucide-react';
+import { CategoryDialog } from '@/components/categories/category-dialog';
+import { DeleteCategoryDialog } from '@/components/categories/delete-category-dialog';
 import {
     dashboardCardClass,
     formatCount,
     formatShare,
 } from '@/components/dashboard/dashboard-data';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { LeadCategory } from '@/types/lead-category';
 
@@ -12,10 +12,12 @@ export function CategoryCard({
     category,
     exampleCount,
     exampleTotal,
+    visibleColors,
 }: {
     category: LeadCategory;
     exampleCount: number;
     exampleTotal: number;
+    visibleColors: string[];
 }) {
     return (
         <Card
@@ -38,40 +40,13 @@ export function CategoryCard({
                             </p>
                         </div>
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-2">
-                        <div className="flex gap-1.5">
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                disabled
-                                aria-label={`Editar ${category.name} — em breve`}
-                                title="Editar categoria — em breve"
-                                className="size-9 rounded-xl border border-white/10 bg-white/[0.025] text-muted-foreground disabled:opacity-50"
-                            >
-                                <Pencil
-                                    className="size-3.5"
-                                    aria-hidden="true"
-                                />
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                disabled
-                                aria-label={`Excluir ${category.name} — em breve`}
-                                title="Excluir categoria — em breve"
-                                className="size-9 rounded-xl border border-white/10 bg-white/[0.025] text-[#e5a6b2] disabled:opacity-50"
-                            >
-                                <Trash2
-                                    className="size-3.5"
-                                    aria-hidden="true"
-                                />
-                            </Button>
-                        </div>
-                        <span className="text-[10px] text-muted-foreground">
-                            Em breve
-                        </span>
+                    <div className="flex shrink-0 gap-1.5">
+                        <CategoryDialog
+                            mode="edit"
+                            category={category}
+                            visibleColors={visibleColors}
+                        />
+                        <DeleteCategoryDialog category={category} />
                     </div>
                 </div>
                 <div className="flex flex-wrap items-end justify-between gap-3">
