@@ -20,11 +20,15 @@ test('profile information can be updated', function () {
         ->patch(route('profile.update'), [
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'current_password' => 'password',
         ]);
 
     $response
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('profile.edit'));
+        ->assertRedirect(route('profile.edit'))
+        ->assertInertiaFlash('toast', [
+            'type' => 'success', 'operation' => 'updated', 'message' => 'Perfil editado com sucesso!',
+        ]);
 
     $user->refresh();
 
@@ -61,7 +65,10 @@ test('user can delete their account', function () {
 
     $response
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('home'));
+        ->assertRedirect(route('home'))
+        ->assertInertiaFlash('toast', [
+            'type' => 'success', 'operation' => 'deleted', 'message' => 'Conta excluída com sucesso!',
+        ]);
 
     $this->assertGuest();
     expect($user->fresh())->toBeNull();
@@ -79,7 +86,8 @@ test('correct password must be provided to delete account', function () {
 
     $response
         ->assertSessionHasErrors('password')
-        ->assertRedirect(route('profile.edit'));
+        ->assertRedirect(route('profile.edit'))
+        ->assertInertiaFlashMissing('toast');
 
     expect($user->fresh())->not->toBeNull();
 });

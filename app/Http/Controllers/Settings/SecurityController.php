@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Actions\FlashCrudSuccess;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\PasswordUpdateRequest;
 use App\Http\Requests\Settings\TwoFactorAuthenticationRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -39,11 +41,14 @@ class SecurityController extends Controller
      */
     public function update(PasswordUpdateRequest $request): RedirectResponse
     {
-        $request->user()->update([
+        $request->user()->forceFill([
             'password' => Hash::make($request->validated('password')),
-        ]);
+            'remember_token' => Str::random(60),
+        ])->save();
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Password updated.')]);
+        $request->session()->regenerate();
+
+        FlashCrudSuccess::updated('Senha', feminine: true);
 
         return back();
     }

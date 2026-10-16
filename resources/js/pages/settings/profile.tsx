@@ -4,6 +4,7 @@ import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileCo
 import DeleteUser from '@/components/delete-user';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,6 +40,7 @@ export default function Profile({
 
                 <Form
                     {...ProfileController.update.form()}
+                    resetOnSuccess={['current_password']}
                     options={{
                         preserveScroll: true,
                     }}
@@ -83,6 +85,18 @@ export default function Profile({
                                     className="mt-2"
                                     message={errors.email}
                                 />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="current_password">
+                                    Senha atual para alterar o e-mail
+                                </Label>
+                                <PasswordInput
+                                    id="current_password"
+                                    name="current_password"
+                                    autoComplete="current-password"
+                                />
+                                <InputError message={errors.current_password} />
                             </div>
 
                             {mustVerifyEmail &&

@@ -12,9 +12,11 @@ trait PasswordValidationRules
      *
      * @return array<int, Password|ValidationRule|array<mixed>|string>
      */
-    protected function passwordRules(): array
+    protected function passwordRules(bool $registration = false): array
     {
-        return ['required', 'string', Password::default()->max(128), 'confirmed'];
+        $password = $registration ? Password::min(8)->uncompromised() : Password::default();
+
+        return ['required', 'string', $password->max(128), ...($registration ? [] : ['confirmed'])];
     }
 
     /**
@@ -24,6 +26,6 @@ trait PasswordValidationRules
      */
     protected function currentPasswordRules(): array
     {
-        return ['required', 'string', 'current_password'];
+        return ['bail', 'required', 'string', 'current_password'];
     }
 }

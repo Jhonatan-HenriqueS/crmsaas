@@ -2,19 +2,21 @@
 
 namespace App\Actions\Fortify;
 
+use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Models\Account;
 use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
 class CreateNewUser implements CreatesNewUsers
 {
-    use ProfileValidationRules;
+    use PasswordValidationRules, ProfileValidationRules;
 
     /**
      * @param  array<string, mixed>  $input
@@ -23,7 +25,7 @@ class CreateNewUser implements CreatesNewUsers
     {
         $validator = Validator::make($input, [
             ...$this->profileRules(),
-            'password' => ['required', 'string', Password::min(8)->max(128)->uncompromised()],
+            'password' => $this->passwordRules(registration: true),
             'terms' => ['accepted'],
             'plan' => ['required', 'string', Rule::in(Account::TYPES)],
         ]);
@@ -44,19 +46,27 @@ class CreateNewUser implements CreatesNewUsers
         /** @var array{name: string, email: string, password: string, plan: string} $data */
         $data = $validator->validate();
 
-        return DB::transaction(function () use ($data): User {
-            $user = User::create([
-                'name' => $data['name'],
-                'email' => $data['email'],
-                'password' => Hash::make($data['password']),
-            ]);
-            $account = Account::create(['type' => $data['plan']]);
-            $user->memberships()->create([
-                'account_id' => $account->id,
-                'role' => 'owner',
-            ]);
+        try {
+            return DB::transaction(function () use ($data): User {
+                $user = User::create([
+                    'name' => $data['name'],
+                    'email' => $data['email'],
+                    'password' => Hash::make($data['password']),
+                ]);
+                $account = Account::create(['type' => $data['plan']]);
+                $user->memberships()->create([
+                    'account_id' => $account->id,
+                    'role' => 'owner',
+                ]);
 
-            return $user;
-        });
+                return $user;
+            });
+        } catch (UniqueConstraintViolationException $exception) {
+            if ($exception->columns !== ['email']) {
+                throw $exception;
+            }
+
+            throw ValidationException::withMessages(['email' => 'Este e-mail já está cadastrado.']);
+        }
     }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Membership;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
@@ -18,6 +19,7 @@ function resetSessionClient(): void
 test('logout rejects replay of the previous real session and remember cookie', function (bool $remember) {
     config(['session.driver' => 'database']);
     $user = User::factory()->create();
+    Membership::factory()->for($user)->create();
     $cookieName = config('session.cookie');
     $initialResponse = $this->get(route('login'))->assertOk();
     $initialCookie = $initialResponse->getCookie($cookieName, decrypt: false)->getValue();

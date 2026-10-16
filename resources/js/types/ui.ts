@@ -8,9 +8,12 @@ export type AppLayoutProps = {
 
 export type AppVariant = 'header' | 'sidebar';
 
+export type CrudOperation = 'created' | 'updated' | 'deleted';
+
 export type FlashToast = {
     type: 'success' | 'info' | 'warning' | 'error';
     message: string;
+    operation?: CrudOperation;
 };
 
 export type AuthLayoutProps = {

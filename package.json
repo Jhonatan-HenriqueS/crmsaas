@@ -37,7 +37,9 @@
         "laravel-vite-plugin": "^3.0.0",
         "lucide-react": "^0.475.0",
         "react": "^19.2.0",
+        "react-colorful": "5.8.1",
         "react-dom": "^19.2.0",
+        "recharts": "3.10.1",
         "sonner": "^2.0.0",
         "tailwind-merge": "^3.0.1",
         "tailwindcss": "^4.0.0",
@@ -60,5 +62,10 @@
         "@tailwindcss/oxide-win32-x64-msvc": "^4.0.1",
         "lightningcss-linux-x64-gnu": "^1.29.1",
         "lightningcss-win32-x64-msvc": "^1.29.1"
+    },
+    "overrides": {
+        "oxfmt@0.64.0": {
+            "tinypool": "2.1.2"
+        }
     }
 }

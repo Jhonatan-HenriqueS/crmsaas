@@ -11,7 +11,14 @@ function Toaster({ ...props }: ToasterProps) {
         <Sonner
             theme={appearance}
             className="toaster group"
-            position="bottom-right"
+            position="top-right"
+            offset={24}
+            mobileOffset={16}
+            duration={5000}
+            closeButton
+            expand
+            containerAriaLabel="Notificações"
+            toastOptions={{ closeButtonAriaLabel: 'Fechar notificação' }}
             style={
                 {
                     '--normal-bg': 'var(--popover)',

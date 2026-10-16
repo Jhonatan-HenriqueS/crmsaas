@@ -74,7 +74,10 @@ test('password can be updated', function () {
 
     $response
         ->assertSessionHasNoErrors()
-        ->assertRedirect(route('security.edit'));
+        ->assertRedirect(route('security.edit'))
+        ->assertInertiaFlash('toast', [
+            'type' => 'success', 'operation' => 'updated', 'message' => 'Senha editada com sucesso!',
+        ]);
 
     expect(Hash::check('new-password', $user->refresh()->password))->toBeTrue();
 });
@@ -93,7 +96,8 @@ test('correct password must be provided to update password', function () {
 
     $response
         ->assertSessionHasErrors('current_password')
-        ->assertRedirect(route('security.edit'));
+        ->assertRedirect(route('security.edit'))
+        ->assertInertiaFlashMissing('toast');
 });
 
 test('password update hashes an encoded looking password as literal input', function () {

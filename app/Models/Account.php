@@ -28,6 +28,12 @@ class Account extends Model
         return $this->hasMany(Membership::class);
     }
 
+    /** @return HasMany<LeadCategory, $this> */
+    public function leadCategories(): HasMany
+    {
+        return $this->hasMany(LeadCategory::class);
+    }
+
     /** @return BelongsToMany<User, $this> */
     public function users(): BelongsToMany
     {

@@ -34,6 +34,7 @@ test('unverified users must verify their email when verification is required', f
 test('unverified users can access the dashboard while email verification is optional', function () {
     config(['auth.email_verification_required' => false]);
     $user = User::factory()->unverified()->create();
+    Membership::factory()->for($user)->create();
 
     $this->actingAs($user)->get(route('dashboard'))->assertOk();
 

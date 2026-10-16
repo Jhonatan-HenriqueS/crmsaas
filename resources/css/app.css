@@ -1,6 +1,6 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
-@import 'tw-animate-css';
+@import "tw-animate-css";
 
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
@@ -9,9 +9,9 @@
 
 @theme {
     --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
-        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
-        'Noto Color Emoji';
+        "Instrument Sans", ui-sans-serif, system-ui, sans-serif,
+        "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+        "Noto Color Emoji";
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -62,6 +62,7 @@
 }
 
 :root {
+    --hing-purple: #6d54b5;
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -147,7 +148,7 @@
     --auth-bg: #666177;
     --auth-panel: #2c2638;
     --auth-field: #3c364c;
-    --auth-primary: #6d54b5;
+    --auth-primary: var(--hing-purple);
     --auth-primary-hover: #7c63c5;
     --auth-visual: #584aa5;
     --auth-text: #f1f1f3;
@@ -155,4 +156,187 @@
     --auth-border: #51495f;
     --auth-focus: #c7b5f3;
     --auth-error: #ffb4c0;
+}
+
+html:has(.dashboard-theme) {
+    color-scheme: dark;
+    background-color: #15161b;
+}
+
+.dashboard-theme {
+    color-scheme: dark;
+    color: var(--foreground);
+    /* Keep Tailwind aliases local to this dark surface, including portals. */
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-border: var(--border);
+    --color-ring: var(--ring);
+    --background: #15161b;
+    --foreground: #f2f1f5;
+    --card: #222329;
+    --card-foreground: #f2f1f5;
+    --popover: #2b2b35;
+    --popover-foreground: #f2f1f5;
+    --primary: var(--hing-purple);
+    --primary-foreground: #fff;
+    --secondary: #29272f;
+    --secondary-foreground: #f2f1f5;
+    --muted: #29272f;
+    --muted-foreground: #aaa8b5;
+    --accent: #302a40;
+    --accent-foreground: #f2f1f5;
+    --border: #ffffff0f;
+    --ring: #bca6ec;
+    --dashboard-sidebar: #1c1d23;
+    --dashboard-green: #39d6a0;
+    --dashboard-grid: #ffffff0e;
+    --chart-1: var(--hing-purple);
+    --chart-2: #ad91df;
+    --chart-3: #409e8e;
+    --chart-4: #697487;
+}
+
+.dashboard-canvas {
+    background-image: linear-gradient(145deg, #1b1c23 0%, #15161b 60%);
+}
+
+.dashboard-theme .dashboard-surface {
+    border-color: #ffffff0d;
+    background-image: linear-gradient(135deg, #ffffff03, #ffffff00 65%);
+    box-shadow:
+        inset 0 1px 0 #ffffff04,
+        0 8px 24px -16px #00000066;
+}
+
+@media (hover: hover) {
+    .dashboard-theme .category-card:hover {
+        background-color: #403452;
+        box-shadow:
+            inset 0 1px 0 #ffffff08,
+            0 0 20px #403452b3,
+            0 10px 24px -14px #403452e6;
+    }
+}
+
+.dashboard-theme .dashboard-nav-active {
+    border-color: #c4aaf03d;
+    background-image: linear-gradient(110deg, var(--hing-purple), #795fc0);
+    box-shadow:
+        inset 0 1px 0 #ffffff1a,
+        0 7px 24px -12px #6d54b599;
+}
+
+.dashboard-theme .dashboard-account {
+    border-color: #ffffff0f;
+    background-color: #25262d;
+    box-shadow:
+        inset 0 1px 0 #ffffff04,
+        0 6px 18px -14px #00000080;
+}
+
+.dashboard-theme .dashboard-demo {
+    border-color: #aa8cdb33;
+    background-color: #292633;
+    box-shadow: inset 0 1px 0 #ffffff04;
+}
+
+.dashboard-theme .dashboard-sales-highlight {
+    --sales-foreground: #effff7;
+    --sales-accent: #c0f2d8;
+    --sales-muted: #add0bc;
+    color: var(--sales-foreground);
+    border-color: #48d99966;
+    background: linear-gradient(120deg, #0d5038, #114532 55%, #17372e);
+    box-shadow:
+        inset 0 0 0 #2e8b5766,
+        0 1px 16px 1px #2e8b5766;
+}
+
+.category-color-picker .react-colorful {
+    width: 100%;
+    height: 180px;
+    gap: 12px;
+}
+
+.category-color-picker .react-colorful__saturation {
+    border-radius: 12px;
+    border-bottom: 0;
+}
+
+.category-color-picker .react-colorful__hue {
+    height: 16px;
+    border-radius: 9999px;
+}
+
+.category-color-picker .react-colorful__pointer {
+    width: 20px;
+    height: 20px;
+    border-width: 3px;
+    box-shadow: 0 2px 8px #00000066;
+}
+
+.category-color-picker .react-colorful__interactive:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 4px;
+}
+
+.toaster [data-sonner-toast].crud-toast-created {
+    --normal-bg: #12382b;
+    --normal-border: #327658;
+    --normal-text: #c3f7dc;
+}
+
+.toaster [data-sonner-toast].crud-toast-updated {
+    --normal-bg: #172f4a;
+    --normal-border: #3d6eab;
+    --normal-text: #d5e9ff;
+}
+
+.toaster [data-sonner-toast].crud-toast-deleted {
+    --normal-bg: #431f29;
+    --normal-border: #a64a5e;
+    --normal-text: #ffd5df;
+}
+
+.toaster [data-sonner-toast][data-styled="true"] {
+    padding-right: 48px;
+    border: 0;
+    border-radius: 12px;
+    font-family: var(--font-sans);
+    box-shadow: 0 8px 28px #00000033;
+}
+
+.toaster [data-sonner-toast][data-styled="true"] [data-close-button] {
+    top: 12px;
+    right: 12px;
+    left: auto;
+    width: 24px;
+    height: 24px;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    transform: none;
+}
+
+.toaster
+    [data-sonner-toast][data-styled="true"]
+    [data-close-button]:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+.toaster [data-sonner-toast][data-removed="true"] {
+    transition: none;
 }
