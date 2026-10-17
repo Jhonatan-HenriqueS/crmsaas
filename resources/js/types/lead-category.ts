@@ -4,8 +4,13 @@ export type LeadCategory = {
     color: string;
 };
 
+export type LeadCategoryMetric = LeadCategory & {
+    leads_count: number;
+    percentage: number;
+};
+
 export type LeadCategoryPage = {
-    data: LeadCategory[];
+    data: LeadCategoryMetric[];
     currentPage: number;
     hasMorePages: boolean;
 };

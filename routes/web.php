@@ -1,13 +1,18 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LeadCategoryController;
+use App\Http\Controllers\LeadController;
 use App\Http\Middleware\ResolveCurrentAccount;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified', ResolveCurrentAccount::class])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('leads', [LeadController::class, 'index'])->name('leads.index');
+    Route::post('leads', [LeadController::class, 'store'])->name('leads.store');
+    Route::get('leads/etapas', [LeadController::class, 'categoryOptions'])->name('leads.category-options');
     Route::get('categorias', [LeadCategoryController::class, 'index'])->name('categories.index');
     Route::post('categorias', [LeadCategoryController::class, 'store'])->name('categories.store');
     Route::patch('categorias/{category}', [LeadCategoryController::class, 'update'])

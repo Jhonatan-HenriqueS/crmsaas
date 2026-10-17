@@ -3,20 +3,16 @@ import { DeleteCategoryDialog } from '@/components/categories/delete-category-di
 import {
     dashboardCardClass,
     formatCount,
-    formatShare,
+    formatPercentage,
 } from '@/components/dashboard/dashboard-data';
 import { Card, CardContent } from '@/components/ui/card';
-import type { LeadCategory } from '@/types/lead-category';
+import type { LeadCategoryMetric } from '@/types/lead-category';
 
 export function CategoryCard({
     category,
-    exampleCount,
-    exampleTotal,
     visibleColors,
 }: {
-    category: LeadCategory;
-    exampleCount: number;
-    exampleTotal: number;
+    category: LeadCategoryMetric;
     visibleColors: string[];
 }) {
     return (
@@ -52,19 +48,16 @@ export function CategoryCard({
                 <div className="flex flex-wrap items-end justify-between gap-3">
                     <div>
                         <p className="text-xl font-semibold tracking-tight tabular-nums">
-                            {formatCount(exampleCount)}
+                            {formatCount(category.leads_count)}
                             <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                                leads fictícios
+                                {category.leads_count === 1 ? 'lead' : 'leads'}
                             </span>
                         </p>
                         <p className="mt-1.5 text-[11px] text-muted-foreground">
-                            {formatShare(exampleCount, exampleTotal)} da base
-                            fictícia desta página
+                            {formatPercentage(category.percentage)} do total de
+                            leads
                         </p>
                     </div>
-                    <span className="rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[10px] font-medium text-[#c8b4ee]">
-                        Demonstração
-                    </span>
                 </div>
             </CardContent>
         </Card>

@@ -3,15 +3,17 @@ import {
     DashboardBarChart,
     DashboardCategoryChart,
 } from '@/components/dashboard/dashboard-charts';
-import { dashboardDemo } from '@/components/dashboard/dashboard-data';
-import type { DashboardData } from '@/components/dashboard/dashboard-data';
+import type {
+    DashboardData,
+    DashboardNewLeads,
+} from '@/components/dashboard/dashboard-data';
 import { DashboardMetrics } from '@/components/dashboard/dashboard-metrics';
 import { DashboardRecords } from '@/components/dashboard/dashboard-records';
 import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
 
-type Props = { overview?: DashboardData };
+type Props = { overview: DashboardData; newLeads: DashboardNewLeads };
 
-export default function Dashboard({ overview = dashboardDemo }: Props) {
+export default function Dashboard({ overview, newLeads }: Props) {
     const { auth } = usePage().props;
 
     return (
@@ -46,34 +48,16 @@ export default function Dashboard({ overview = dashboardDemo }: Props) {
                                 Uma visão clara das suas oportunidades.
                             </p>
                         </div>
-                        {overview.source === 'demo' && (
-                            <div className="dashboard-demo self-start rounded-xl border px-3.5 py-3 sm:self-auto">
-                                <p className="flex items-center gap-2 text-[11px] font-medium text-[#c8b4ee]">
-                                    <span
-                                        className="size-1.5 rounded-full bg-[#bca6ec]"
-                                        aria-hidden="true"
-                                    />
-                                    Dados de demonstração
-                                </p>
-                                <p className="mt-1.5 text-[10px] text-muted-foreground">
-                                    Os números abaixo são fictícios.
-                                </p>
-                            </div>
-                        )}
                     </header>
-                    <DashboardMetrics data={overview} />
+                    <DashboardMetrics data={overview} newLeads={newLeads} />
                     <div className="grid min-w-0 grid-cols-1 items-stretch gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
                         <DashboardBarChart data={overview} />
                         <DashboardCategoryChart data={overview} />
-                        <DashboardRecords data={overview} />
+                        <DashboardRecords />
                     </div>
                     <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.045] pt-4 text-[10px] text-muted-foreground/70">
                         <span>HING CRM</span>
-                        <span>
-                            {overview.source === 'demo'
-                                ? 'Prévia visual · dados fictícios'
-                                : 'Visão geral da sua conta'}
-                        </span>
+                        <span>Visão geral da sua conta</span>
                     </footer>
                 </div>
             </main>

@@ -15,21 +15,16 @@ import type { LeadCategoryPage } from '@/types/lead-category';
 type Props = {
     categories: LeadCategoryPage;
     initialColor: string;
+    totalLeads: number;
 };
 
-export default function Categories({ categories, initialColor }: Props) {
+export default function Categories({
+    categories,
+    initialColor,
+    totalLeads,
+}: Props) {
     const { auth } = usePage().props;
     const visibleColors = categories.data.map((category) => category.color);
-    // Synthetic examples only. These values never query leads or represent account activity.
-    const examples = categories.data.map((category) => ({
-        category,
-        count: 12 + (category.id % 5) * 4,
-    }));
-    const exampleTotal = examples.reduce(
-        (sum, example) => sum + example.count,
-        0,
-    );
-
     return (
         <div
             lang="pt-BR"
@@ -100,20 +95,17 @@ export default function Categories({ categories, initialColor }: Props) {
                                     Categorias cadastradas
                                 </h2>
                                 <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
-                                    Nomes e cores são reais. Indicadores de
-                                    demonstração: base de{' '}
-                                    {formatCount(exampleTotal)} leads fictícios
-                                    nesta página.
+                                    Distribuição das categorias em relação aos{' '}
+                                    {formatCount(totalLeads)} leads da sua
+                                    conta.
                                 </p>
                             </div>
                             <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
-                                {examples.map(({ category, count }) => (
+                                {categories.data.map((category) => (
                                     <CategoryCard
                                         key={category.id}
                                         category={category}
                                         visibleColors={visibleColors}
-                                        exampleCount={count}
-                                        exampleTotal={exampleTotal}
                                     />
                                 ))}
                             </div>

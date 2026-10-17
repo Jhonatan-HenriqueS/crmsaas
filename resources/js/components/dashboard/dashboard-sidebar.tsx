@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { LayoutDashboard, LogOut, Menu, Tags } from 'lucide-react';
+import { LayoutDashboard, LogOut, Menu, Tags, Users } from 'lucide-react';
 import { useState } from 'react';
 import { HingWordmark } from '@/components/hing-wordmark';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -17,6 +17,7 @@ import { useCurrentUrl } from '@/hooks/use-current-url';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import { index as categoriesIndex } from '@/routes/categories';
+import { index as leadsIndex } from '@/routes/leads';
 import type { User } from '@/types';
 
 type AccountUser = Pick<User, 'name' | 'email'>;
@@ -33,6 +34,7 @@ function SidebarContent({
     const navigation = [
         { title: 'Dashboard', href: dashboard(), icon: LayoutDashboard },
         { title: 'Categorias', href: categoriesIndex(), icon: Tags },
+        { title: 'Leads', href: leadsIndex(), icon: Users },
     ];
 
     return (
@@ -157,7 +159,7 @@ export function DashboardSidebar({ user }: { user: AccountUser }) {
                             Menu principal
                         </SheetTitle>
                         <SheetDescription className="sr-only">
-                            Dashboard, categorias e informações da conta
+                            Dashboard, categorias, leads e informações da conta
                             autenticada.
                         </SheetDescription>
                         <SidebarContent

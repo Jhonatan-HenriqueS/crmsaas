@@ -34,6 +34,12 @@ class Account extends Model
         return $this->hasMany(LeadCategory::class);
     }
 
+    /** @return HasMany<Lead, $this> */
+    public function leads(): HasMany
+    {
+        return $this->hasMany(Lead::class);
+    }
+
     /** @return BelongsToMany<User, $this> */
     public function users(): BelongsToMany
     {

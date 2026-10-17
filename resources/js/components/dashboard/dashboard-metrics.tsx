@@ -1,3 +1,4 @@
+import { router } from '@inertiajs/react';
 import {
     Check,
     CircleDollarSign,
@@ -6,7 +7,7 @@ import {
     Users,
     Workflow,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -19,16 +20,48 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { dashboard } from '@/routes';
 import {
     dashboardCardClass,
     dashboardPeriods,
     formatCount,
-    formatShare,
 } from './dashboard-data';
-import type { DashboardData, DashboardPeriod } from './dashboard-data';
+import type {
+    DashboardData,
+    DashboardNewLeads,
+    DashboardPeriod,
+} from './dashboard-data';
 
-export function DashboardMetrics({ data }: { data: DashboardData }) {
-    const [period, setPeriod] = useState<DashboardPeriod>('week');
+export function DashboardMetrics({
+    data,
+    newLeads,
+}: {
+    data: DashboardData;
+    newLeads: DashboardNewLeads;
+}) {
+    const [loading, setLoading] = useState(false);
+    const pending = useRef(false);
+    const period = newLeads.period;
+
+    function selectPeriod(value: DashboardPeriod) {
+        if (pending.current || value === period) return;
+        pending.current = true;
+        setLoading(true);
+        router.get(
+            dashboard.url({ query: { period: value } }),
+            {},
+            {
+                only: ['newLeads'],
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                onFinish: () => {
+                    pending.current = false;
+                    setLoading(false);
+                },
+            },
+        );
+    }
     const periodLabel = dashboardPeriods.find(
         (option) => option.value === period,
     )?.label;
@@ -41,7 +74,7 @@ export function DashboardMetrics({ data }: { data: DashboardData }) {
         },
         {
             title: 'Novos leads',
-            value: data.newLeads[period],
+            value: newLeads.count,
             label: periodLabel,
             icon: ScanLine,
             editable: true,
@@ -49,13 +82,13 @@ export function DashboardMetrics({ data }: { data: DashboardData }) {
         {
             title: 'Em acompanhamento',
             value: data.inProgressLeads,
-            label: 'Conversas em andamento',
+            label: 'Métrica disponível em breve',
             icon: Workflow,
         },
         {
             title: 'Leads vendidos',
             value: data.soldLeads,
-            label: `${formatShare(data.soldLeads, data.totalLeads)} do total de leads`,
+            label: 'Métrica disponível em breve',
             icon: CircleDollarSign,
             green: true,
         },
@@ -84,6 +117,8 @@ export function DashboardMetrics({ data }: { data: DashboardData }) {
                                             variant="ghost"
                                             size="icon"
                                             className="-mt-1 -mr-1 size-9 shrink-0 rounded-full border border-white/70 bg-[#e3d8f7] text-[#4b347c] shadow-[0_0_18px_-3px_#e4d7ff55] transition-[color,background-color,border-color,box-shadow] hover:bg-[#f2ebff] hover:text-[#39245f] hover:shadow-[0_0_22px_-2px_#e4d7ff66] data-[state=open]:bg-[#f2ebff] motion-reduce:transition-none"
+                                            disabled={loading}
+                                            aria-busy={loading}
                                             aria-label="Alterar período dos novos leads"
                                         >
                                             <Pencil
@@ -111,7 +146,7 @@ export function DashboardMetrics({ data }: { data: DashboardData }) {
                                                             value,
                                                     )
                                                 ) {
-                                                    setPeriod(
+                                                    selectPeriod(
                                                         value as DashboardPeriod,
                                                     );
                                                 }

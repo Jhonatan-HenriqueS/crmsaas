@@ -7,6 +7,8 @@ use App\Http\CurrentAccount;
 use App\Http\Requests\MutateLeadCategoryRequest;
 use App\Http\Requests\StoreLeadCategoryRequest;
 use App\Models\Account;
+use App\Models\LeadCategory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
@@ -21,8 +23,21 @@ class LeadCategoryController extends Controller
         $account = $currentAccount->get();
         Gate::authorize('view', $account);
 
-        $categories = $account->leadCategories()->orderByDesc('id')
-            ->simplePaginate(12, ['id', 'name', 'color']);
+        $total = $account->leads()->count();
+        $categories = $account->leadCategories()->select(['id', 'name', 'color'])
+            ->withCount(['leads' => fn (Builder $query) => $query->where('account_id', $account->id)])
+            ->orderByDesc('id')->simplePaginate(12)
+            ->through(static function (LeadCategory $category) use ($total): array {
+                $count = (int) $category->getAttribute('leads_count');
+
+                return [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'color' => $category->color,
+                    'leads_count' => $count,
+                    'percentage' => $total > 0 ? round($count / $total * 100, 1) : 0.0,
+                ];
+            });
 
         return Inertia::render('categories/index', [
             'categories' => [
@@ -30,6 +45,7 @@ class LeadCategoryController extends Controller
                 'currentPage' => $categories->currentPage(),
                 'hasMorePages' => $categories->hasMorePages(),
             ],
+            'totalLeads' => $total,
             'initialColor' => $this->availableColor($account),
         ]);
     }

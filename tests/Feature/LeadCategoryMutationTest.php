@@ -260,4 +260,4 @@ test('nonexistent categories return 404 for either mutation', function (string $
     $this->assertDatabaseEmpty('lead_categories');
 })->with(['PATCH', 'DELETE']);
 
-// Lead deletion cascades remain pending until the Leads table and its real relationships exist.
+// Real Lead cascade and rollback coverage is in LeadIntegrityTest.

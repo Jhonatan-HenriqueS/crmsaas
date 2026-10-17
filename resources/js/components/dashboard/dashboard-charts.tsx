@@ -12,14 +12,15 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { dashboardCardClass, formatCount, formatShare } from './dashboard-data';
+import {
+    dashboardCardClass,
+    formatCount,
+    formatPercentage,
+} from './dashboard-data';
 import type { DashboardData } from './dashboard-data';
 
 export function DashboardBarChart({ data }: { data: DashboardData }) {
-    const weeklyTotal = data.weeklyIntake.reduce(
-        (total, day) => total + day.count,
-        0,
-    );
+    const weeklyTotal = data.weeklyTotal;
     const chartData = data.weeklyIntake.map((day, index) => ({
         ...day,
         fill:
@@ -40,7 +41,7 @@ export function DashboardBarChart({ data }: { data: DashboardData }) {
                         </h2>
                     </CardTitle>
                     <span className="rounded-md border border-white/[0.07] bg-white/[0.025] px-2.5 py-1 text-[10px] text-muted-foreground">
-                        Última semana
+                        Semana atual
                     </span>
                 </div>
                 <div className="flex items-baseline gap-3">
@@ -109,10 +110,7 @@ export function DashboardBarChart({ data }: { data: DashboardData }) {
                                     active && payload?.length ? (
                                         <div className="rounded-xl border border-white/10 bg-popover px-3.5 py-3 text-xs shadow-xl">
                                             <p className="mb-1 text-muted-foreground">
-                                                {label} ·{' '}
-                                                {data.source === 'demo'
-                                                    ? 'Demonstração'
-                                                    : 'Novos leads'}
+                                                {label} · Semana atual
                                             </p>
                                             <p className="font-medium text-foreground">
                                                 {formatCount(
@@ -135,9 +133,7 @@ export function DashboardBarChart({ data }: { data: DashboardData }) {
                     </ResponsiveContainer>
                 </div>
                 <p className="mt-3 text-center text-[10px] text-muted-foreground/75">
-                    {data.source === 'demo'
-                        ? 'Distribuição semanal com dados fictícios'
-                        : 'Distribuição semanal dos novos leads'}
+                    Semana atual · segunda a domingo · {data.reportingTimezone}
                 </p>
             </CardContent>
         </Card>
@@ -145,11 +141,12 @@ export function DashboardBarChart({ data }: { data: DashboardData }) {
 }
 
 export function DashboardCategoryChart({ data }: { data: DashboardData }) {
-    const chartData = data.categories.map((category) => ({
-        ...category,
-        fill: category.color,
-    }));
-    const soldShare = formatShare(data.soldLeads, data.totalLeads);
+    const chartData = data.categories
+        .filter((category) => category.count > 0)
+        .map((category) => ({
+            ...category,
+            fill: category.color,
+        }));
 
     return (
         <Card
@@ -174,53 +171,58 @@ export function DashboardCategoryChart({ data }: { data: DashboardData }) {
                     role="group"
                     aria-labelledby="categories-title"
                 >
-                    <ResponsiveContainer
-                        width="100%"
-                        height="100%"
-                        minWidth={0}
-                    >
-                        <PieChart accessibilityLayer>
-                            <Pie
-                                data={chartData}
-                                dataKey="count"
-                                nameKey="name"
-                                innerRadius="66%"
-                                outerRadius="86%"
-                                startAngle={90}
-                                endAngle={-270}
-                                paddingAngle={3}
-                                cornerRadius={4}
-                                stroke="none"
-                                isAnimationActive={false}
-                            />
-                            <Tooltip
-                                isAnimationActive={false}
-                                content={({ active, payload }) =>
-                                    active && payload?.length ? (
-                                        <div className="rounded-xl border border-white/10 bg-popover px-3.5 py-3 text-xs shadow-xl">
-                                            <p className="mb-1 font-medium text-foreground">
-                                                {String(payload[0].name)}
-                                            </p>
-                                            <p className="text-muted-foreground">
-                                                {formatCount(
-                                                    Number(payload[0].value),
-                                                )}{' '}
-                                                leads ·{' '}
-                                                {formatShare(
-                                                    Number(payload[0].value),
-                                                    data.totalLeads,
-                                                )}{' '}
-                                                do total
-                                            </p>
-                                        </div>
-                                    ) : null
-                                }
-                            />
-                        </PieChart>
-                    </ResponsiveContainer>
+                    {data.totalLeads > 0 && (
+                        <ResponsiveContainer
+                            width="100%"
+                            height="100%"
+                            minWidth={0}
+                        >
+                            <PieChart accessibilityLayer>
+                                <Pie
+                                    data={chartData}
+                                    dataKey="count"
+                                    nameKey="name"
+                                    innerRadius="66%"
+                                    outerRadius="86%"
+                                    startAngle={90}
+                                    endAngle={-270}
+                                    paddingAngle={3}
+                                    cornerRadius={4}
+                                    stroke="none"
+                                    isAnimationActive={false}
+                                />
+                                <Tooltip
+                                    isAnimationActive={false}
+                                    content={({ active, payload }) => {
+                                        const category = payload?.[0]
+                                            ?.payload as
+                                            | DashboardData['categories'][number]
+                                            | undefined;
+                                        return active && category ? (
+                                            <div className="rounded-xl border border-white/10 bg-popover px-3.5 py-3 text-xs shadow-xl">
+                                                <p className="mb-1 font-medium text-foreground">
+                                                    {category.name}
+                                                </p>
+                                                <p className="text-muted-foreground">
+                                                    {formatCount(
+                                                        category.count,
+                                                    )}{' '}
+                                                    leads ·{' '}
+                                                    {formatPercentage(
+                                                        category.percentage,
+                                                    )}{' '}
+                                                    do total
+                                                </p>
+                                            </div>
+                                        ) : null;
+                                    }}
+                                />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    )}
                     <div
                         className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"
-                        aria-hidden="true"
+                        aria-hidden={data.totalLeads > 0}
                     >
                         <span className="mb-1 text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
                             Total de leads
@@ -229,6 +231,11 @@ export function DashboardCategoryChart({ data }: { data: DashboardData }) {
                             {formatCount(data.totalLeads)}
                         </span>
                         <span className="mt-2 h-0.5 w-6 rounded-full bg-primary" />
+                        {data.totalLeads === 0 && (
+                            <span className="mt-3 text-xs text-muted-foreground">
+                                Nenhum lead cadastrado
+                            </span>
+                        )}
                     </div>
                 </div>
                 <div className="mb-3 flex items-center justify-between gap-3 border-b border-white/[0.06] pb-3 text-[10px] text-muted-foreground">
@@ -236,12 +243,18 @@ export function DashboardCategoryChart({ data }: { data: DashboardData }) {
                     <span>Quantidade / %</span>
                 </div>
                 <ul
-                    className="space-y-4"
+                    className="max-h-40 space-y-4 overflow-y-auto pr-1"
+                    tabIndex={0}
                     aria-label="Quantidades e percentuais por categoria"
                 >
+                    {data.categories.length === 0 && (
+                        <li className="text-xs text-muted-foreground">
+                            Nenhuma categoria cadastrada.
+                        </li>
+                    )}
                     {data.categories.map((category) => (
                         <li
-                            key={category.name}
+                            key={category.id}
                             className="flex min-w-0 items-center gap-2.5 text-xs"
                         >
                             <span
@@ -249,14 +262,14 @@ export function DashboardCategoryChart({ data }: { data: DashboardData }) {
                                 style={{ backgroundColor: category.color }}
                                 aria-hidden="true"
                             />
-                            <span className="min-w-0 flex-1 break-words text-muted-foreground">
+                            <span className="min-w-0 flex-1 [overflow-wrap:anywhere] text-muted-foreground">
                                 {category.name}
                             </span>
                             <span className="font-medium tabular-nums">
                                 {formatCount(category.count)}
                             </span>
                             <span className="w-10 text-right text-muted-foreground tabular-nums">
-                                {formatShare(category.count, data.totalLeads)}
+                                {formatPercentage(category.percentage)}
                             </span>
                         </li>
                     ))}
@@ -274,11 +287,11 @@ export function DashboardCategoryChart({ data }: { data: DashboardData }) {
                             {formatCount(data.soldLeads)}
                         </span>
                         <span className="text-xs font-medium text-[var(--sales-accent)]">
-                            {soldShare} do total geral
+                            Disponível em breve
                         </span>
                     </div>
                     <p className="mt-2 text-[11px] leading-relaxed text-[var(--sales-muted)]">
-                        Status de venda, independentemente da categoria.
+                        Os dados de venda ainda não estão disponíveis.
                     </p>
                 </div>
             </CardContent>
