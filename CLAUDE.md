@@ -2,8 +2,7 @@
 
 > **Arquivo comprimido e vivo: é o cérebro único do projeto. Ao atualizar (protocolo 0.4), mantenha o
 > estilo curto, não perca contexto, preserve todas as seções e não crie outros arquivos de contexto.**
->
-> Fonte única de contexto. Evita redescobrir a arquitetura a cada sessão. Ler inteiro antes de agir.
+> Fonte única de contexto: ler inteiro antes de agir.
 
 ---
 
@@ -17,10 +16,10 @@
 3. Três camadas:
    - **Seções 1–9**: como o sistema **está hoje** (verificado no código em 2026-10-27).
    - **Seção 10**: o que o documento de arquitetura exige e **o que falta** (gap analysis).
-   - **Seção 12 (Anexo)**: **especificação-alvo viva** do produto (nascida do PDF "Arquitetura e
-     Segurança do CRM SaaS em Laravel"). Dúvida sobre "como deveria ser": **o anexo manda**. Dúvida
-     sobre "como está": **o código manda**. Divergência entre os dois: corrigir este CLAUDE.md.
-4. Abrir código só quando precisar do detalhe exato. Mapa da seção 3 diz onde cada coisa está.
+   - **Seção 12 (Anexo)**: **especificação-alvo viva** (nascida do PDF "Arquitetura e Segurança do
+     CRM SaaS em Laravel"). Dúvida sobre "como deveria ser": **o anexo manda**. Sobre "como está":
+     **o código manda**. Divergência entre os dois: corrigir este CLAUDE.md.
+4. Abrir código só quando precisar do detalhe exato. Mapa na seção 3.
 
 ### 0.2 Regras invioláveis de arquitetura e segurança
 
@@ -35,13 +34,13 @@
   Recurso de outro tenant responde **404** (`Response::denyAsNotFound()`), não 403.
 - **FormRequests rejeitam campos extras** (hook `after()` compara chaves recebidas com a allowlist).
   Manter em todo endpoint novo.
-- **Mass assignment**: modelos com `#[Fillable]` restrito e `#[Hidden]` para `account_id`,
-  `system_key`, segredos. Não ampliar `Fillable` com campos de autoridade.
+- **Mass assignment**: `#[Fillable]` restrito e `#[Hidden]` para `account_id`, `system_key`,
+  segredos. Não ampliar `Fillable` com campos de autoridade.
 - **Integridade no banco**: FKs compostas `(account_id, category_id)` impedem relação entre tenants
   mesmo com bug na aplicação. Novas tabelas filhas repetem o padrão.
 - **Escritas críticas em transação** com `lockForUpdate()` e `attempts: 3`; `saveOrFail()`/`deleteOrFail()`
   com `abort_unless(..., 409)`.
-- **Data minimization**: backend envia ao frontend só campos/agregados necessários
+- **Data minimization**: backend envia só campos/agregados necessários
   (`paginate(12, [colunas explícitas])`, `->only([...])` no share do Inertia).
 - **Sessão + CSRF + Policy**: três coisas diferentes, as três obrigatórias.
 - Senha é **hash** (Argon2id), nunca "criptografia" reversível.
@@ -73,6 +72,19 @@ decisão arquitetural), o Claude **DEVE** atualizar **dentro deste CLAUDE.md**, 
 5. Changelog (seção 13): uma linha com data absoluta (AAAA-MM-DD) e resumo.
 6. Nunca criar arquivo separado para isso.
 7. Ao terminar a tarefa, informar no chat, em 2–3 linhas, quais seções do CLAUDE.md foram atualizadas.
+8. **Um fato, um lugar.** Antes de escrever algo novo, procurar se o fato já existe. Se existir,
+   editar ali. Em outros pontos, só referência curta ("ver 7", "ver 11.1").
+9. **Changelog com rotação.** Guardar as últimas 10 linhas detalhadas. Passou de 10: fundir as mais
+   antigas em UMA linha-resumo por mês ("2026-10: ..."), sem perder decisões importantes.
+10. **Orçamento de tamanho.** Meta: ≤ 650 linhas. Ao terminar uma tarefa, se passou disso,
+    DEDUPLICAR e CONDENSAR antes de encerrar (frases curtas, referências no lugar de repetição,
+    changelog rotacionado).
+11. **O limite NUNCA vence o contexto.** Proibido apagar fato, regra, decisão, status de matriz,
+    ferramenta (atual, parcial ou futura), rota, arquivo, coluna, comando ou critério do MVP só para
+    caber no limite. Se, após deduplicar e condensar, continuar acima do limite porque o projeto
+    cresceu: NÃO cortar contexto; manter tudo, avisar o usuário no chat e propor novo limite. Quem
+    sobe o limite é o usuário.
+12. Manter o aviso do topo e o estilo telegráfico em português do Brasil.
 
 ### 0.5 Comandos do dia a dia
 
@@ -93,29 +105,26 @@ decisão arquitetural), o Claude **DEVE** atualizar **dentro deste CLAUDE.md**, 
 
 ## 1. Visão geral do produto (estado atual — MVP v1)
 
-**HING CRM**: CRM SaaS multi-tenant, dois tipos de conta: **Empresa** (opera a própria operação
-comercial) e **Agência** (futuro: gerencia múltiplos clientes com permissões concedidas pela Empresa).
+**HING CRM**: CRM SaaS multi-tenant. Contas **Empresa** (opera a própria operação comercial) e
+**Agência** (futuro: gerencia múltiplos clientes com permissões concedidas pela Empresa).
 
 MVP hoje:
 
 - **Home pública** (`/`): proposta + cards dos planos Empresa e Agência (`resources/js/lib/home-plans.ts`).
 - **Cadastro** com plano (`/register?plan=empresa|agencia`), aceite de Termos, criação atômica de
-  **User + Account + Membership(owner) + categoria permanente "Finalizado"**.
-- **Login / logout / recuperação de senha / verificação de e-mail / 2FA TOTP** via Laravel Fortify.
-- **Categorias de leads** (CRUD): nome + cor HEX única por conta, contagem e % de leads, categoria de
-  sistema "Finalizado" protegida, exclusão com confirmação de impacto que **apaga em cascata todos os
-  leads da categoria**.
-- **Leads** (CRUD): nome, descrição, categoria (etapa), data do primeiro contato, data do próximo
-  contato, valor potencial, valor cobrado; botão **"Finalizar venda"** (move para "Finalizado" com
-  confirmação explícita), reabertura com confirmação, exclusão, filtro por categoria, paginação.
-- **Dashboard** com dados reais da conta: total de leads, novos leads por período (semana / 2 semanas /
-  mês), leads vendidos e % vendido, barras de **entrada de leads na semana atual (Seg–Dom)**, donut de
-  **leads por categoria** com percentuais.
+  **User + Account + Membership(owner) + categoria permanente "Finalizado"** (ver 6.1).
+- **Login / logout / recuperação de senha / verificação de e-mail / 2FA TOTP** via Fortify (ver 6.2).
+- **Categorias de leads** (CRUD): nome + cor HEX única por conta, contagem e %, "Finalizado"
+  protegida, exclusão com confirmação de impacto que **apaga em cascata os leads** (ver 6.3).
+- **Leads** (CRUD): nome, descrição, categoria (etapa), primeiro/próximo contato, valor potencial,
+  valor cobrado; **"Finalizar venda"** e reabertura com confirmação; exclusão; filtro; paginação (ver 6.4).
+- **Dashboard** com dados reais: total, novos por período (semana / 2 semanas / mês), vendidos e %,
+  barras da **semana atual (Seg–Dom)**, donut **por categoria** (ver 6.6).
 - **Configurações**: perfil (nome/e-mail), exclusão do usuário, segurança (senha, 2FA), aparência.
 
 **Não existe ainda**: campanhas, métricas de campanha, investimentos/CPL/receita/margem, clientes de
 agência, vínculo Agência↔Empresa, convites, grants, checkout simulado, uploads/OCR, audit log, Redis,
-S3, Sanctum, PWA. Ver seção 10.
+S3, Sanctum, PWA. Ver 10.
 
 ---
 
@@ -150,25 +159,25 @@ S3, Sanctum, PWA. Ver seção 10.
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `Actions/Fortify/CreateNewUser.php` | Registro: valida perfil, senha (`min 8 + uncompromised`, max 128), `terms` aceito, `plan ∈ Account::TYPES`; cria User+Account+Membership(owner) em transação; trata corrida de e-mail único. |
+| `Actions/Fortify/CreateNewUser.php` | Registro (fluxo em 6.1): valida perfil, senha (`min 8 + uncompromised`, max 128), `terms`, `plan ∈ Account::TYPES`; cria User+Account+Membership(owner) em transação; trata corrida de e-mail único. |
 | `Actions/Fortify/ResetUserPassword.php` | Redefinição de senha (`passwordRules()`), `Hash::make`. |
-| `Actions/SaveLead.php` | **Único ponto de escrita de lead** (create/update/complete). Transação, `lockForUpdate`, valida categoria da conta, exige `confirm_completion` ao entrar em "Finalizado" e `confirm_reopening` ao sair. |
+| `Actions/SaveLead.php` | **Único ponto de escrita de lead** (create/update/complete); regras em 6.4. |
 | `Actions/EnsureSaleCompletedCategory.php` | Cria idempotente a categoria de sistema `sale_completed` ("Finalizado", `#00ff0a`) com lock na conta. Falha se o verde já estiver em uso por categoria comum. |
 | `Actions/FlashCrudSuccess.php` | Toasts de sucesso via `Inertia::flash('toast', ...)` em pt-BR. |
-| `Concerns/PasswordValidationRules.php` | Senha: registro `Password::min(8)->uncompromised()->max(128)`; demais `Password::default()->max(128)` + `confirmed`. |
+| `Concerns/PasswordValidationRules.php` | Registro `Password::min(8)->uncompromised()->max(128)`; demais `Password::default()->max(128)` + `confirmed` (política em 7). |
 | `Concerns/ProfileValidationRules.php` | `name` (≤255) e `email` (email, ≤255, unique). |
 | `Console/Commands/EnsureSaleCompletedCategories.php` | `accounts:ensure-sale-category` — provisiona "Finalizado" em contas legadas. |
 | `Http/CurrentAccount.php` | Lê conta resolvida dos atributos do request; `abort 404` se ausente. |
 | `Http/Middleware/ResolveCurrentAccount.php` | Exige usuário autenticado (401) e **exatamente 1 conta com role owner** (senão 404); injeta e limpa contexto por request. |
-| `Http/Middleware/EnsureEmailVerification.php` | Alias `verified`; exige verificação só se `auth.email_verification_required`. |
+| `Http/Middleware/EnsureEmailVerification.php` | Alias `verified`; exige verificação só se `auth.email_verification_required` (regra em 6.2). |
 | `Http/Middleware/EnsureSafeAuthenticationRedirect.php` | Sanitiza `url.intended` (bloqueia open redirect: host/esquema/porta externos, `//`, `\`, caracteres de controle, credenciais na URL). |
 | `Http/Middleware/ValidateAuthenticationInput.php` | Valida e normaliza (lowercase) e-mail/token/senha antes do Fortify em register, reset, confirm. |
-| `Http/Middleware/HandleInertiaRequests.php` | Share só `auth.user` com campos públicos (`id,name,email,email_verified_at,created_at,updated_at`); `Inertia::encryptHistory()` quando autenticado; `Cache-Control: no-store, private` em páginas autenticadas. |
+| `Http/Middleware/HandleInertiaRequests.php` | Share só `auth.user` com `id,name,email,email_verified_at,created_at,updated_at`; `Inertia::encryptHistory()` e `Cache-Control: no-store, private` quando autenticado. |
 | `Http/Middleware/HandleAppearance.php` | Cookie `appearance` (light/dark/system). |
 | `Http/Controllers/DashboardController.php` | Métricas agregadas da conta (ver 6.6). |
-| `Http/Controllers/LeadController.php` | index (paginado, filtro), `categoryOptions` (cursor), store, update, complete, destroy. Obs.: `show()` existe **sem rota registrada**. |
-| `Http/Controllers/LeadCategoryController.php` | index (paginado + programadas + cor sugerida), store, update, destroy com confirmação criptografada. |
-| `Http/Controllers/Settings/ProfileController.php` | Editar perfil, excluir usuário (bloqueado se último owner de alguma conta). |
+| `Http/Controllers/LeadController.php` | index (paginado, filtro), `categoryOptions` (cursor), store, update, complete, destroy. `show()` existe **sem rota** (ver 11.5). |
+| `Http/Controllers/LeadCategoryController.php` | index (paginado + programadas + cor sugerida), store, update, destroy com confirmação criptografada (ver 6.3). |
+| `Http/Controllers/Settings/ProfileController.php` | Editar perfil, excluir usuário (ver 6.5). |
 | `Http/Controllers/Settings/SecurityController.php` | Página de segurança (exige confirmação de senha), troca de senha (rotaciona `remember_token`, regenera sessão). |
 | `Http/Requests/StoreLeadRequest.php` / `MutateLeadRequest.php` / `CompleteLeadRequest.php` | Validação/autorização de leads; `MutateLeadRequest::lead()` resolve o lead **pela relação da conta**. |
 | `Http/Requests/StoreLeadCategoryRequest.php` / `MutateLeadCategoryRequest.php` | Validação/autorização de categorias; proíbe DELETE da categoria de sistema (403). |
@@ -184,8 +193,8 @@ S3, Sanctum, PWA. Ver seção 10.
 | `Policies/AccountPolicy.php` | `view`/`update`: usuário precisa ser owner da conta, senão `denyAsNotFound`. |
 | `Policies/LeadPolicy.php` | `viewAny/view/create/update/delete` sempre exigem `lead.account_id === account.id` + AccountPolicy. |
 | `Providers/AppServiceProvider.php` | `CarbonImmutable`, `DB::prohibitDestructiveCommands` em produção, força origem/esquema do `APP_URL` em produção, `Password::defaults` de produção. |
-| `Providers/FortifyServiceProvider.php` | Views Inertia do Fortify, bindings de responses, middlewares extras nas rotas do Fortify e **rate limiters**. |
-| `bootstrap/app.php` | `trustProxies` (só `X-Forwarded-Proto`), `trustHosts` (host do `APP_URL`, sem subdomínios), cookies criptografados (exceto `appearance`, `sidebar_state`), `AuthenticateSession`, `dontFlash(token, code, recovery_code)`. |
+| `Providers/FortifyServiceProvider.php` | Views Inertia do Fortify, bindings de responses, middlewares extras nas rotas do Fortify e **rate limiters** (valores em 7). |
+| `bootstrap/app.php` | `trustProxies`, `trustHosts`, cookies criptografados, `AuthenticateSession`, `dontFlash(token, code, recovery_code)` (detalhes em 7). |
 
 ### 3.2 Config relevantes (`config/`)
 
@@ -212,15 +221,15 @@ S3, Sanctum, PWA. Ver seção 10.
 
 ### 3.4 Testes (`tests/`)
 
-~336 testes de Feature (Pest) por tema + testes JS de `lead-format` e `lead-transition`.
-Principais: `AccountAuthorizationTest`, `CurrentAccountTest`, `TenantFoundationTest`,
-`LeadFoundationTest`, `LeadMutationTest`, `LeadIntegrityTest`, `LeadPageTest`, `LeadCategory*Test`,
-`CategoryDeletion*Test`, `SaleCompletion*Test`, `SaleMetricsTest`, `SystemLeadCategoryTest`,
-`Dashboard*Test`, `LogoutSecurityTest`, `SessionReplayTest`, `RegistrationSecurityTest`,
-`RegistrationCsrfTest`, `SecurityConfigurationTest`, `Auth/*` (Login CSRF/Security, Origin, Recovery,
-SessionRevocation, TrustedProxy, 2FA…), `Settings/*` (IdentitySecurity, OwnerDeletion…).
-Padrão: `RefreshDatabase` em `Feature`, factories (`Account::factory()->agency()`,
-`User::factory()->withTwoFactor()`, `->unverified()`).
+Padrão: ~336 testes Pest em `Feature` com `RefreshDatabase`; factories com estados (`Account::factory()->agency()`,
+`User::factory()->withTwoFactor()`, `->unverified()`); JS em `.test.mjs` (`lead-format`, `lead-transition`).
+Temas/arquivos: tenancy (`AccountAuthorizationTest`, `CurrentAccountTest`, `TenantFoundationTest`); leads
+(`LeadFoundationTest`, `LeadMutationTest`, `LeadIntegrityTest`, `LeadPageTest`); categorias
+(`LeadCategory*Test`, `CategoryDeletion*Test`, `SystemLeadCategoryTest`); venda (`SaleCompletion*Test`,
+`SaleMetricsTest`); dashboard (`Dashboard*Test`, incl. `DashboardTest`, `DashboardMetricsTest`); sessão
+(`LogoutSecurityTest`, `SessionReplayTest`); registro (`RegistrationSecurityTest`, `RegistrationCsrfTest`);
+`SecurityConfigurationTest`; `Auth/*` (Login CSRF/Security, `AuthenticationTest`, `LoginSecurityTest`,
+Origin, Recovery, SessionRevocation, TrustedProxy, 2FA…); `Settings/*` (IdentitySecurity, OwnerDeletion…).
 
 ---
 
@@ -242,8 +251,8 @@ password_reset_tokens · cache · cache_locks · jobs · job_batches · failed_j
 | `leads` | id, account_id FK cascade, category_id, name(120), description text null, first_contact_date date, next_contact_date date null, potential_amount decimal(12,2) null, charged_amount decimal(12,2) null, timestamps | **FK composta (account_id, category_id) → lead_categories(account_id, id) ON DELETE CASCADE**; index(account_id, id); index(category_id, account_id) |
 | `sessions` | id, user_id, ip_address, user_agent, payload, last_activity | driver `database` |
 
-Cascatas: excluir **categoria** apaga todos os leads dela; excluir **conta** apaga categorias, leads e
-memberships; excluir **usuário** apaga memberships (UI bloqueia se for o último owner).
+Cascatas: excluir **categoria** apaga seus leads; **conta** apaga categorias, leads e memberships;
+**usuário** apaga memberships (UI bloqueia se último owner).
 
 ---
 
@@ -280,39 +289,39 @@ IDs de rota usam `whereNumber`.
 
 ## 6. Fluxos funcionais (como o MVP funciona hoje)
 
+Rate limits de todos os fluxos: ver 7.
+
 ### 6.1 Home → Plano → Cadastro
 
-1. `/` mostra planos Empresa e Agência; CTA leva a `/register?plan=empresa|agencia`.
+1. `/` mostra planos; CTA leva a `/register?plan=empresa|agencia`.
 2. `registerView` valida o plano (senão volta para `/#planos`).
-3. `POST /register` (throttle `registration` 5/min/IP + `ValidateAuthenticationInput` +
+3. `POST /register` (limiter `registration` + `ValidateAuthenticationInput` +
    `EnsureSafeAuthenticationRedirect`) → `CreateNewUser`:
-   - valida nome, e-mail único (lowercase), senha (8–128, não vazada — HIBP), `terms` aceito, `plan`;
+   - valida nome, e-mail único (lowercase), senha (ver 7), `terms` aceito, `plan`;
    - transação: `User` (senha `Hash::make` → argon2id) → `Account(type=plan)` (provisiona
      "Finalizado") → `Membership(role=owner)`.
 4. Fortify loga o usuário e redireciona para `/dashboard` (ou verificação de e-mail, se exigida).
 
 > Sem checkout simulado nem "ordem/intenção" no servidor: plano vem do query param, só validado
-> contra a allowlist. Ver gap 10.1.
+> contra a allowlist. Ver 11.2.
 
 ### 6.2 Login / 2FA / Logout / Recuperação
 
-- `POST /login`: valida (`LoginRequest`), rate limit `login` 5/min por `email|ip`, erro genérico
-  (não revela se e-mail existe), **regenera sessão e CSRF**, respeita `url.intended` sanitizado.
-  `rehash_on_login` atualiza hashes legados (bcrypt → argon2id).
-- 2FA TOTP opcional por usuário (Fortify: `confirm` + `confirmPassword`); desafio com limiter
-  `two-factor` 5/min por `login.id`; códigos de recuperação.
+- `POST /login`: valida (`LoginRequest`), erro genérico (não revela se e-mail existe), **regenera
+  sessão e CSRF**, respeita `url.intended` sanitizado. `rehash_on_login` atualiza hashes legados
+  (bcrypt → argon2id).
+- 2FA TOTP opcional por usuário (Fortify: `confirm` + `confirmPassword`); códigos de recuperação.
 - `POST /logout`: Fortify faz `Auth::logout` + `invalidate` + `regenerateToken`; `LogoutResponse`
   limpa histórico Inertia criptografado e redireciona para `/login`. Sessão antiga e cookie remember
   não restauram acesso (testado).
-- Recuperação: limiter `password.email` (30/min/IP + 5/min por hash(email)+IP), resposta idêntica
-  para e-mail existente ou não; token expira em 60 min, uso único; `password.update` 10/min.
+- Recuperação: resposta idêntica para e-mail existente ou não; token expira em 60 min, uso único.
 - Verificação de e-mail: obrigatória por padrão. Desligada só com `AUTH_EMAIL_VERIFICATION_REQUIRED=false`
   em `APP_ENV=local`; em outros ambientes **somente** com também `AUTH_ALLOW_UNVERIFIED_EMAIL_IN_PRODUCTION=true`.
 
 ### 6.3 Categorias
 
-- Lista: categorias de sistema ("programadas") separadas + comuns paginadas (12), cada uma com
-  `leads_count`, `percentage` sobre o total da conta e, nas comuns, token
+- Lista: de sistema ("programadas") separadas + comuns paginadas (12), cada uma com `leads_count`,
+  `percentage` sobre o total da conta e, nas comuns, token
   `deletion_confirmation = Crypt::encryptString(json([account_id, category_id, name, count]))`.
 - Criar/editar: só `name` (trim, ≤120, sem caracteres de controle) e `color` (`#rrggbb` minúsculo,
   **única por conta** — validação + unique no banco + tratamento de corrida). Campos extras rejeitados.
@@ -322,7 +331,7 @@ IDs de rota usam `whereNumber`.
   imutável, nunca aceito do browser.
 - **Exclusão**: diálogo mostra quantos leads serão apagados; servidor, em transação com lock,
   recalcula contagem, descriptografa confirmação, compara com `hash_equals`. Nome ou quantidade
-  mudaram → 422, nada apagado. Válido → **apaga categoria e, por FK em cascata, todos os seus leads**.
+  mudaram → 422, nada apagado. Válido → **apaga categoria e, por FK em cascata, seus leads**.
 
 ### 6.4 Leads
 
@@ -333,8 +342,8 @@ Nulo continua nulo (não vira zero).
 
 - Lista: 12 por página, ordem `id desc`, filtro por categoria validado e escopado à conta (categoria
   alheia → 404), página além do fim redireciona para a última, eager load de categoria (sem N+1).
-- Criar/editar: `SaveLead` em transação com lock. Categoria escolhida "Finalizado" e lead não
-  finalizado → exige `confirm_completion`. Finalizado indo para outra → exige `confirm_reopening`.
+- Criar/editar: `SaveLead` em transação com `lockForUpdate`, valida categoria da conta. Entrar em
+  "Finalizado" (lead não finalizado) exige `confirm_completion`; sair dela exige `confirm_reopening`.
   Edição sem mudança não altera timestamps nem emite toast.
 - **Finalizar venda** (`POST /leads/{id}/complete`): aceita só `confirm_completion`, `page`,
   `category`; move para "Finalizado"; idempotente.
@@ -344,7 +353,7 @@ Nulo continua nulo (não vira zero).
 ### 6.5 Configurações
 
 - Perfil: nome livre; troca de e-mail exige `current_password` na mesma requisição, normaliza para
-  minúsculas e zera `email_verified_at`; throttle 6/min.
+  minúsculas e zera `email_verified_at`.
 - Excluir usuário: exige senha; bloqueado se for o **último owner** de qualquer conta (lock nas
   contas); depois invalida sessão.
 - Segurança: confirmação de senha recente (`password_timeout` 3h); troca de senha regenera sessão e
@@ -374,9 +383,9 @@ Props Inertia (closures, permitem *partial reload*):
 | **Sessão** | Guard `session`; driver `database`; cookie `HttpOnly`, `SameSite=lax`, `Secure` em produção; lifetime 120 min; ID regenerado no login, troca de senha e logout; `AuthenticateSession` invalida outras sessões ao mudar senha; `serialization=json`. |
 | **Cookies** | Todos criptografados (AES-256-CBC, `APP_KEY`) exceto `appearance` e `sidebar_state` (não sensíveis). |
 | **CSRF** | Middleware nativo do Laravel 13 (origem/Sec-Fetch + token / `X-XSRF-TOKEN`) em todas as mutações, inclusive login, registro, logout. GET logout não muda estado. |
-| **Senhas** | Hash **Argon2id** (memory 64 MB, time 4, threads 1), `rehash_on_login`, cast `hashed`; máx. 128; registro: mín. 8 + vazamento (HIBP `uncompromised`); troca/reset em produção: mín. 12 + maiúscula/minúscula + número + símbolo + uncompromised; fora de produção: mín. 8. |
+| **Senhas** | Hash **Argon2id** (memory 64 MB, time 4, threads 1), `rehash_on_login`, cast `hashed`; máx. 128; registro: mín. 8 + vazamento (HIBP `uncompromised`); troca/reset em produção: mín. 12 + maiúscula/minúscula + número + símbolo + uncompromised; fora de produção: mín. 8. Divergência do alvo: 11.1. |
 | **2FA** | TOTP Fortify com confirmação e confirmação de senha; segredo e recovery codes criptografados; opcional (não obrigatório). |
-| **Brute force / rate limit** | login 5/min (email\|ip); 2FA 5/min; registro 5/min/IP; recuperação 30/min/IP + 5/min por identidade; reset 10/min; perfil e senha 6/min. Store = cache `database`. |
+| **Brute force / rate limit** | `login` 5/min (email\|ip); `two-factor` 5/min por `login.id`; `registration` 5/min/IP; `password.email` 30/min/IP + 5/min por hash(email)+IP; `password.update` 10/min; perfil (PATCH) e senha 6/min. Store = cache `database`. |
 | **Anti-enumeração** | Login e recuperação com respostas genéricas; recurso de outro tenant → 404. |
 | **Open redirect** | `EnsureSafeAuthenticationRedirect` em login, 2FA, confirm, register, verify. |
 | **Tenancy** | `ResolveCurrentAccount` (conta da sessão/membership, exatamente 1 owner) + `CurrentAccount`; queries pela relação da conta; contexto limpo após cada request. |
@@ -409,8 +418,7 @@ Props Inertia (closures, permitem *partial reload*):
   tipos de retorno explícitos, PHPDoc com array shapes, chaves `{}` sempre.
 - Ações de domínio em `app/Actions` (classe com `handle()`), resolução de recurso dentro do FormRequest
   (`lead()`, `category()`), controllers finos.
-- Mensagens de validação customizadas em pt-BR no próprio FormRequest.
-- Toasts via `FlashCrudSuccess`.
+- Mensagens de validação customizadas em pt-BR no próprio FormRequest. Toasts via `FlashCrudSuccess`.
 - Rotas em português no path (`/categorias`, `/leads/etapas`), nomes em inglês (`categories.index`).
 - Frontend: Wayfinder para URLs (`@/routes`, `@/actions`), componentes por domínio
   (`components/leads`, `components/categories`, `components/dashboard`), tipos em `types/`,
@@ -428,25 +436,25 @@ Legenda: ✅ implementado · 🟡 parcial/divergente · ❌ não implementado
 | Item do documento | Status | Observação |
 |---|---|---|
 | Laravel 13 + Inertia/React/TS | ✅ | |
-| PHP 8.4/8.5 | 🟡 | Projeto em PHP 8.3 (composer, CLI e Docker). |
-| PostgreSQL 18.6+ | 🟡 | Produção pgsql (Docker); local e testes SQLite. Migrations compiladas para PG testadas sem servidor. |
-| Redis para sessão/cache/rate limit | ❌ | Tudo em `database`. |
+| PHP 8.4/8.5 | 🟡 | PHP 8.3 (ver 2). |
+| PostgreSQL 18.6+ | 🟡 | Ver 2 e 11.9. Migrations compiladas para PG testadas sem servidor. |
+| Redis para sessão/cache/rate limit | ❌ | Tudo em `database` (ver 2; plano em 10.2). |
 | Fortify (login, registro, reset, verificação, 2FA) | ✅ | |
 | Sanctum para API/mobile | ❌ | Não instalado (OK para MVP web). |
 | S3 privado | ❌ | Sem uploads. |
 | Queue + Redis/Horizon | 🟡 | Fila `database`; nenhum job de domínio. |
-| Infra CloudFront/WAF/ALB/RDS | ❌ | Deploy atual em container (Render). |
+| Infra CloudFront/WAF/ALB/RDS | ❌ | Deploy em container (Render). |
 | PWA (manifest/service worker) | ❌ | Sem `manifest.webmanifest`. |
 | Capacitor | ❌ | Futuro. |
-| Fluxo HOME → PLANO → CHECKOUT SIMULADO → CADASTRO | 🟡 | Home e plano ✅; **checkout simulado/ordem no servidor não existe** — plano vem de query param validado. |
+| Fluxo HOME → PLANO → CHECKOUT SIMULADO → CADASTRO | 🟡 | Home e plano ✅; **checkout simulado/ordem no servidor não existe** (ver 11.2). |
 | Tenancy por `account_id` (USER → membership → ACCOUNT) | ✅ | |
-| Múltiplas contas por usuário / slug de contexto | ❌ | Middleware exige exatamente 1 conta owner. |
+| Múltiplas contas por usuário / slug de contexto | ❌ | Ver 11.4. |
 | `users` | ✅ | |
 | `accounts` | ✅ | `type empresa|agencia`. |
 | `memberships` | 🟡 | Só `role=owner`; sem papéis de colaborador. |
 | `plans/subscriptions` | ❌ | |
 | `lead_categories` | ✅ | + categoria de sistema "Finalizado". |
-| `leads` | 🟡 | Atuais: name, description, category, datas de contato, potential/charged amount. **Faltam**: `client_id`, `phone`, `website`, `instagram`, `quoted_amount` (≈ potential_amount), `tool_cost`, `status` (hoje status = categoria). |
+| `leads` | 🟡 | Atuais em 4. **Faltam**: `client_id`, `phone`, `website`, `instagram`, `quoted_amount` (≈ potential_amount), `tool_cost`, `status` (hoje status = categoria). |
 | `clients` | ❌ | |
 | `campaigns` / `campaign_metrics` (histórico) | ❌ | |
 | `agency_links` / `access_grants` / `invitations` | ❌ | |
@@ -461,7 +469,7 @@ Legenda: ✅ implementado · 🟡 parcial/divergente · ❌ não implementado
 | Dashboard: campanhas ativas, receita, investimento, ferramentas, resultado, margem | ❌ | Dependem de campanhas. |
 | Cookie Secure/HttpOnly/SameSite, sem token em localStorage | ✅ | |
 | CSRF | ✅ | |
-| Senha mínimo 15 sem MFA (ou 8 com 2FA obrigatório), sem regras de composição, bloquear vazadas | 🟡 | Registro: 8 + vazadas; produção (troca/reset): 12 + **regras de composição** (documento desaconselha). Inconsistência registro × troca. 2FA não obrigatório. |
+| Senha mínimo 15 sem MFA (ou 8 com 2FA obrigatório), sem regras de composição, bloquear vazadas | 🟡 | Ver 11.1. |
 | Hash bcrypt/Argon2id | ✅ | Argon2id. |
 | Criptografia em repouso/TLS no banco/rede privada/IAM | ❌ | Depende da infra; nada no código (ex.: `sslmode`). |
 | Criptografia de campo seletiva | 🟡 | Só segredos 2FA (Fortify) e tokens de confirmação; correto para MVP segundo o documento. |
@@ -469,8 +477,8 @@ Legenda: ✅ implementado · 🟡 parcial/divergente · ❌ não implementado
 | Bloqueio de mass assignment de campos de autoridade | ✅ | |
 | Deslogado → /login; 401 API; 403 ação conhecida; 404 tenant alheio | ✅ | |
 | Logout: logout → invalidate → regenerate CSRF → redirect | ✅ | |
-| Convites Agência↔Empresa com aceite/recusa, grants granulares, revogação | ❌ | |
-| Pipeline de print/OCR com revisão humana | ❌ | |
+| Convites Agência↔Empresa com aceite/recusa, grants granulares, revogação | ❌ | Plano em 10.2. |
+| Pipeline de print/OCR com revisão humana | ❌ | Plano em 10.2. |
 | Meta Marketing API | ❌ | |
 | App stateless (sessão fora do servidor) | 🟡 | Sessão no banco já compartilhável entre instâncias; Redis recomendado. |
 | Docker sem segredos, usuário não privilegiado | ✅ | Roda como `www-data`; `.dockerignore` exclui `.env`, `.git`, `node_modules`, `vendor`, `tests`, logs e `public/build`. |
@@ -478,7 +486,9 @@ Legenda: ✅ implementado · 🟡 parcial/divergente · ❌ não implementado
 | Backup e restore testado | ❌ | |
 | Observabilidade | ❌ | |
 
-### 10.2 Escalabilidade futura (encaixar sem quebrar a arquitetura)
+### 10.2 Escalabilidade futura (plano; encaixar sem quebrar a arquitetura)
+
+Fluxos e decisões-alvo correspondentes: anexo (12).
 
 - **Agência controlando contas de Empresas**: `agency_links(agency_account_id, company_account_id,
   status pending|accepted|revoked)`, `access_grants(link_id, permission ∈ leads.read, leads.write,
@@ -496,8 +506,9 @@ Legenda: ✅ implementado · 🟡 parcial/divergente · ❌ não implementado
 - **E-mail**: mailer real (SMTP/SES/Postmark), notificações via fila; conteúdo fora de logs.
 - **Planos/checkout**: `plans`, `subscriptions`, `checkout_intents` criados no servidor; `/register`
   liberado só para intenção concluída; depois trocar só o mecanismo de confirmação pelo gateway real.
-- **Uploads/OCR**: disco S3 privado, validação MIME/tamanho (sem SVG), scan de malware, job em fila,
-  tela de revisão, gravação em transação.
+- **Uploads/OCR**: disco S3 privado, validação MIME/tamanho (sem SVG), scan de malware (GuardDuty
+  Malware Protection for S3), job em fila, OCR (AWS Textract, com confiança), tela de revisão,
+  gravação em transação. Depois: Meta Marketing API/Insights como fonte de verdade.
 - **Infra**: Redis (sessão, cache, rate limit, fila/Horizon), PostgreSQL gerenciado com TLS, backups
   testados, `audit_logs` para eventos de segurança.
 - **API/mobile**: Sanctum; PWA (manifest + service worker); Capacitor reutilizando o mesmo backend.
@@ -529,17 +540,17 @@ Legenda: ✅ implementado · 🟡 parcial/divergente · ❌ não implementado
 
 ## 11. Divergências, riscos e débitos conhecidos (não alterar sem pedido)
 
-1. **Política de senha** inconsistente: registro aceita 8; troca/reset em produção exige 12 +
-   composição; documento pede 15 sem MFA (ou 8 com 2FA obrigatório) e **sem** regras de composição.
-   UI do registro cita 8 caracteres.
+1. **Política de senha** diverge do alvo (anexo, "Senha"): registro 8; troca/reset em produção 12 +
+   composição (alvo desaconselha); inconsistência registro × troca; 2FA não obrigatório. UI do
+   registro cita 8 caracteres. Detalhe atual em 7.
 2. **Plano escolhido pelo browser** (`?plan=`) sem ordem/checkout no servidor — hoje inofensivo (sem
    entitlement diferente), mas precisa mudar antes de existir diferença de recursos/cobrança.
 3. **Conta Agência = conta Empresa** em funcionalidades; nada específico de agência existe.
 4. `ResolveCurrentAccount` exige **exatamente uma** conta owner: convidado/colaborador ou usuário com
-   2 contas recebe 404 — evoluir para seleção de conta ativa.
+   2 contas recebe 404 — evoluir para seleção de conta ativa (10.2).
 5. `LeadController::show()` implementado mas **sem rota** (código morto ou pendente).
 6. Card "Em acompanhamento" fixo em 0; "Prévia de registros" placeholder.
-7. Sessão/cache/rate limit em `database` (sem Redis); fila `database` sem worker definido no Docker.
+7. Sessão/cache/rate limit/fila em `database` (ver 2); fila sem worker definido no Docker.
 8. Mailer padrão `array`: e-mails de verificação/reset **não são enviados** até configurar `MAIL_MAILER`.
    Verificação exigida em produção sem mailer real impede usuários de verificar (por isso existe o
    opt-out explícito `AUTH_ALLOW_UNVERIFIED_EMAIL_IN_PRODUCTION`).
@@ -556,22 +567,20 @@ Legenda: ✅ implementado · 🟡 parcial/divergente · ❌ não implementado
 
 > Especificação-alvo viva, nascida do PDF 'Arquitetura e Segurança do CRM SaaS em Laravel' (versão
 > condensada). Em dúvida sobre 'como deveria ser', o anexo manda; sobre 'como está', o código manda.
-> Mantenha atualizado. Números sobrescritos = referências no final.
+> Mantenha atualizado. Plano de implementação dos itens futuros: 10.2. Status: 10.1 e 10.3.
 
 # Arquitetura e Segurança do CRM SaaS em Laravel
 
 ## Conclusão executiva
 
-- Confirma relatório anterior: Laravel com auth por sessão/cookie, CSRF, Policies, PostgreSQL
-  relacional, isolamento dos registros e logout com invalidação da sessão = base correta.
-- Evolução principal antes de escrever o CRM: estruturar por conta/workspace (`account_id`), não só
-  `user_id`. Permite Empresa com usuários próprios e Agência com acesso controlado à conta da Empresa,
-  sem misturar dados entre clientes.
-- Navegador: sem JWT por login, sem token de auth no JavaScript. Laravel 13 tem auth nativa por
-  sessão/cookie; doc recomenda Sanctum para API, SPA separada ou mobile. Em SPA first-party, Sanctum
-  também prioriza cookie de sessão. ¹
+- Base: Laravel com auth por sessão/cookie, CSRF, Policies, PostgreSQL relacional, isolamento dos
+  registros, logout com invalidação da sessão.
+- Estruturar por conta/workspace (`account_id`), não só `user_id`: Empresa com usuários próprios;
+  Agência com acesso controlado à conta da Empresa, sem misturar dados entre clientes.
+- Navegador: sem JWT por login, sem token de auth no JavaScript. Sanctum só para API, SPA separada ou
+  mobile (em SPA first-party, Sanctum também usa cookie de sessão).
 
-Arquitetura recomendada para o MVP:
+Stack-alvo do MVP:
 
 | Camada | Escolha |
 |---|---|
@@ -587,10 +596,11 @@ Arquitetura recomendada para o MVP:
 | Web instalável | PWA |
 | App de loja futuro | Capacitor, mantendo Laravel como backend |
 
-- Laravel 13: Fortify nos Starter Kits (login, registro, recuperação de senha, verificação de e-mail,
-  2FA) + rate limiting oficial. ²
-- PostgreSQL com RLS: partir de 18.6 ou versão explicitamente corrigida. CVE-2026-14666 afetou versões
-  anteriores (cache de planos e políticas RLS); correção publicada em 13 de agosto de 2026. ³
+- Fortify (Starter Kits Laravel 13): login, registro, recuperação, verificação de e-mail, 2FA + rate
+  limiting oficial.
+- PostgreSQL com RLS: 18.6+ ou versão explicitamente corrigida — CVE-2026-14666 (cache de planos e
+  políticas RLS) afetou versões anteriores; correção em 13 de agosto de 2026.
+  https://www.postgresql.org/support/security/CVE-2026-14666/
 
 > **Decisão central:** navegador identifica o usuário pela sessão; `account_id` define o
 > tenant; Policy define o que ele pode fazer; consulta SQL limita quais registros podem
@@ -598,11 +608,7 @@ Arquitetura recomendada para o MVP:
 
 ## Arquitetura do produto e experiência do usuário
 
-Referências visuais da Hostinger: úteis pelo fluxo de decisão, não pela tecnologia — planos separados,
-destaque visual de uma opção, CTA objetivo, checkout com resumo antes de criar/continuar a conta.
-Página oficial usa seleção de plano + fluxo de compra/conta. ⁴
-
-Fluxo:
+Referência Hostinger (só fluxo): planos separados, destaque de uma opção, CTA objetivo, checkout com resumo.
 
 ```
 HOME → PLANO → CHECKOUT SIMULADO → CADASTRO → SESSÃO → DASHBOARD → CRM
@@ -624,12 +630,11 @@ Plano Agência:
 Acrescenta: clientes gerenciados, campanhas por cliente, permissões Empresa↔Agência e
 compartilhamento controlado de dados.
 
-Sem dezenas de funcionalidades na home. MVP: usuário entende na hora para quem é o plano, o que
-resolve, preço e CTA.
+Home sem dezenas de funcionalidades: para quem é o plano, o que resolve, preço e CTA.
 
 ### Checkout simulado
 
-Mesmo simulado, frontend não envia isto e servidor não acredita:
+Mesmo simulado, servidor nunca acredita no frontend enviando:
 
 ```
 plan = agency
@@ -654,15 +659,13 @@ Servidor libera /register para aquela intenção
 Conta + workspace + membership são criados
 ```
 
-Gateway real depois: troca-se o mecanismo de confirmação, não a arquitetura inteira.
+Gateway real depois: troca só o mecanismo de confirmação, não a arquitetura.
 
 ### Cadastro e login
 
-- Fortify define rotas/lógica de `GET /login`, `POST /login`, `POST /logout`, registro, recuperação
-  de senha e verificação de e-mail. ⁵
-- `GET /login` só entrega o formulário (não busca dados do usuário). `POST /login` envia credenciais
-  por HTTPS; backend verifica senha e, se aceita, inicia/regenera a sessão. Laravel recomenda
-  invalidar sessão e regenerar CSRF no logout. ⁶
+Fortify define `GET /login`, `POST /login`, `POST /logout`, registro, recuperação e verificação de
+e-mail. `GET /login` só entrega o formulário. `POST /login` envia credenciais por HTTPS; backend
+verifica senha e inicia/regenera a sessão. Nunca mandar todos os dados da conta ao frontend após login.
 
 ```
 POST /login
@@ -680,11 +683,7 @@ backend identifica usuário + account
 consulta SOMENTE dados desse account
 ```
 
-Diferente de mandar todos os dados da conta ao frontend após o login.
-
 ## Banco de dados, CRM e isolamento entre contas
-
-Mudança arquitetural mais importante em relação ao primeiro conceito.
 
 ### Não use apenas user_id como dono do CRM
 
@@ -694,16 +693,9 @@ leads.user_id
 campaigns.user_id
 ```
 
-Funciona para sistema individual; atrapalha quando surge:
-
-- Agência com vários colaboradores;
-- Empresa com vários funcionários;
-- Agência administrando Empresa;
-- mudança de proprietário;
-- permissões diferentes;
-- integração futura com equipes.
-
-Hierarquia:
+Funciona para sistema individual; quebra com: Agência com vários colaboradores; Empresa com vários
+funcionários; Agência administrando Empresa; mudança de proprietário; permissões diferentes;
+integração futura com equipes. Hierarquia (conta = fronteira de segurança):
 
 ```
 USER
@@ -717,8 +709,6 @@ CLIENTS
 METRICS
 ATTACHMENTS
 ```
-
-Conta = fronteira de segurança.
 
 ### Estrutura mínima recomendada
 
@@ -739,9 +729,9 @@ Conta = fronteira de segurança.
 | attachments | Prints/arquivos |
 | audit_logs | Eventos de segurança/ações importantes |
 
-PostgreSQL: constraints, FKs e RLS; com RLS ativo e nenhuma política permitindo, padrão = negar. RLS
-tem exceções (dono da tabela normalmente contorna), então é segunda barreira, não substitui Policies
-nem escopo da aplicação. ⁷
+RLS PostgreSQL: com RLS ativo e nenhuma política permitindo, padrão = negar; mas dono da tabela e
+papéis privilegiados podem contornar. Logo, RLS = segunda barreira, nunca substitui Policies nem
+escopo da aplicação.
 
 ### Leads
 
@@ -770,10 +760,8 @@ lead
 └─ timestamps
 ```
 
-Browser não escolhe o proprietário. Backend deriva `account_id` da sessão/membership. Laravel
-recomenda Policies para autorizar ver, criar, atualizar e excluir. ⁸
-
-Tentativa de:
+Browser não escolhe o proprietário: backend deriva `account_id` da sessão/membership. Policies
+autorizam ver, criar, atualizar e excluir. Tentativa de:
 
 ```
 PATCH /leads/ABC
@@ -795,12 +783,13 @@ Payload validado?
 UPDATE
 ```
 
-Conhecer o ID de outro lead não basta. OWASP: IDOR/BOLA; verificar autorização no objeto em cada
-requisição; UUID no lugar de ID numérico só dificulta enumeração, não substitui autorização. ⁹
+Conhecer o ID não basta. OWASP IDOR/BOLA: verificar autorização no objeto em cada requisição; UUID no
+lugar de ID numérico só dificulta enumeração, não substitui autorização.
+https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html
 
 ### Dashboard
 
-Sem `user_id` na rota para descobrir qual dashboard carregar. Use:
+Sem `user_id` na rota. Use:
 
 ```
 /dashboard
@@ -816,19 +805,19 @@ session
 → dados daquele account
 ```
 
-Usuário com várias contas depois:
+Várias contas depois:
 
 ```
 /app/minha-empresa/dashboard
 /app/cliente-alfa/dashboard
 ```
 
-Slug só indica contexto. Nunca prova autorização.
+Slug só indica contexto, nunca prova autorização.
 
-Corrigir a frase “nenhum dado pode aparecer no frontend” (impediria o dashboard). Princípio correto:
-data minimization — backend entrega só campos e agregados necessários para a tela, nunca registros ou
-propriedades desnecessárias. OWASP trata exposição excessiva e autorização em propriedades como riscos
-distintos de API. ¹⁰
+Data minimization (não "nenhum dado no frontend", que impediria o dashboard): backend entrega só
+campos e agregados necessários à tela, nunca registros/propriedades desnecessários. OWASP API1:2023
+(autorização por objeto) e API3:2023 (exposição excessiva/autorização por propriedade) são riscos
+distintos. https://api-security.owasp.org/editions/2023/en/0xa3-broken-object-property-level-authorization/
 
 ### Dashboard inicial
 
@@ -852,21 +841,19 @@ Exemplo:
 5 pendente    25%
 ```
 
-Não chamar resultado de “lucro líquido” enquanto impostos, mão de obra e demais custos não estiverem
-contemplados; no MVP: resultado da campanha ou margem de contribuição.
-
-Campanhas: registros históricos em `campaign_metrics`, não alterar continuamente uma coluna única.
-Preserva valor de segunda, terça, semana seguinte etc.; permite comparar períodos e auditar alterações.
+- Não chamar resultado de “lucro líquido” enquanto impostos, mão de obra e demais custos não forem
+  contemplados; no MVP: resultado da campanha ou margem de contribuição.
+- `campaign_metrics` histórico (append-only), nunca alterar coluna única: preserva valores por dia/
+  semana; permite comparar períodos e auditar alterações.
 
 ## Autenticação, cookies, formulários e proteção dos dados
 
-Relatório anterior acertou ao separar sessão, CSRF e autorização: três coisas diferentes.
-
 ### Cookie e sessão
 
-Credencial persistente do navegador = cookie de sessão protegido, não token exposto ao JavaScript.
-OWASP: cookies `Secure`, `HttpOnly` e `SameSite`, HTTPS em toda a sessão, regenerar ID após mudança de
-nível de autenticação, não guardar credenciais de sessão em `localStorage`. ¹¹
+Credencial persistente = cookie de sessão protegido, nunca token exposto ao JavaScript. OWASP Session
+Management: `Secure`, `HttpOnly`, `SameSite`, HTTPS em toda a sessão, regenerar ID ao mudar nível de
+autenticação, nada de credencial de sessão em `localStorage`. Redis: sessão disponível para qualquer
+container + rate limiter.
 
 ```
 COOKIE
@@ -881,14 +868,10 @@ Redis
 user/account no servidor
 ```
 
-Múltiplos containers: Redis mantém sessão disponível qualquer que seja a instância Laravel; Laravel
-fornece driver Redis e rate limiter com Redis. ¹²
-
 ### CSRF
 
-CSRF não é “token de login”. Laravel gera token CSRF ligado à sessão e verifica requisições mutáveis;
-no Laravel 13 usa também informações de origem do navegador antes da comparação tradicional do token,
-quando aplicável. ¹³
+CSRF não é “token de login”. Token ligado à sessão, verificado em requisições mutáveis; Laravel 13 usa
+também informação de origem do navegador antes da comparação tradicional, quando aplicável.
 
 ```
 SESSION COOKIE  = "quem está autenticado"
@@ -900,12 +883,10 @@ Os três são necessários.
 
 ### Senha
 
-Alterar obrigatoriamente o requisito original de 8 caracteres. NIST SP 800-63B atual: mínimo 15
-quando senha é o único fator; 8 permitido quando parte de autenticação multifator. NIST desaconselha
-regras arbitrárias (“uma maiúscula + uma minúscula + símbolo”) e recomenda bloquear senhas comuns ou
-comprometidas. ¹⁴
-
-MVP adota:
+Decisão-alvo (substitui o requisito original de 8), base NIST SP 800-63B
+(https://pages.nist.gov/800-63-4/sp800-63b.html): 15 mínimo quando senha é o único fator; 8 só com
+MFA; sem regras de composição arbitrárias (“uma maiúscula + uma minúscula + símbolo”); bloquear senhas
+comuns/comprometidas. Estado atual: 7; divergência: 11.1.
 
 > mínimo de 15 caracteres sem MFA, permitindo frases-senha.
 
@@ -913,8 +894,7 @@ Ou:
 
 > mínimo de 8 somente quando 2FA estiver sendo exigido.
 
-Fortify suporta 2FA TOTP. ⁵ Senha é hasheada, não “criptografada”; Laravel suporta bcrypt e
-Argon2id. ¹⁵
+2FA via Fortify TOTP. Senha é hasheada (bcrypt ou Argon2id), não “criptografada”:
 
 ```
 senha original
@@ -926,11 +906,11 @@ hash irreversível
 PostgreSQL
 ```
 
-Nem você, nem administrador, nem dashboard recuperam a senha original.
+Ninguém (você, administrador, dashboard) recupera a senha original.
 
 ### E-mail, telefone e dados comerciais
 
-Não é correto “criptografar todos os campos” sem projeto. Abordagem do MVP:
+Não “criptografar todos os campos” sem projeto. Camadas do MVP:
 
 ```
 HTTPS/TLS em trânsito
@@ -948,12 +928,11 @@ logs sem PII desnecessária
 criptografia de campo seletiva
 ```
 
-- RDS PostgreSQL pode obrigar SSL/TLS; nas versões modernas `rds.force_ssl` rejeita conexões sem SSL. ¹⁶
-- Laravel tem criptografia de campos específicos; valores protegidos contra alteração pela própria
-  implementação. ¹⁷
-- E-mail de login (unique, pesquisa): criptografia de campo exige desenho adicional; sem criptografia
-  caseira. V1: banco/backup criptografados em repouso, rede privada, autorização rigorosa. Field
-  encryption só para campos com necessidade e estratégia de pesquisa definidas.
+- RDS PostgreSQL: `rds.force_ssl` rejeita conexões sem SSL/TLS.
+- Criptografia de campo do Laravel: valores autenticados (protegidos contra alteração).
+- E-mail de login (unique, pesquisa): criptografia exige desenho adicional; sem criptografia caseira.
+  V1: banco/backup criptografados em repouso, rede privada, autorização rigorosa; field encryption só
+  para campos com necessidade e estratégia de pesquisa definidas.
 
 ### Validação do formulário
 
@@ -968,10 +947,8 @@ Database constraints
 última barreira de integridade
 ```
 
-Laravel valida tipo, limites e arquivos; regra de imagem não permite SVG por padrão, só se habilitado
-explicitamente. ¹⁸
-
-Nunca permitir mass assignment, vindo do browser, de:
+Regra de imagem do Laravel não aceita SVG por padrão (só se habilitado). Nunca mass assignment, vindo
+do browser, de:
 
 ```
 user_id
@@ -985,10 +962,7 @@ plan_status
 
 ### Comportamento para rotas não autorizadas
 
-Alteração de decisão do requisito original.
-
-Usuário deslogado tentando `/dashboard` (após autenticar pode voltar à rota pretendida; suportado pelo
-Laravel ¹⁹):
+Deslogado em `/dashboard` (após login volta à rota pretendida):
 
 ```
 → redireciona para /login
@@ -1006,17 +980,13 @@ Autenticado sem permissão para ação conhecida:
 → 403
 ```
 
-Usuário A tentando descobrir recurso privado do tenant B:
+Usuário A tentando recurso privado do tenant B (não revela existência; não substitui autorização):
 
 ```
 → 404
 ```
 
-404 não revela nem a existência do objeto. Não substitui a verificação real de autorização. ²⁰
-
 ### Logout
-
-Procedimento documentado pelo Laravel:
 
 ```
 Auth::logout()
@@ -1027,17 +997,15 @@ regenerate CSRF token
 ↓
 redirect
 ```
-²¹
 
-Depois disso, sessão antiga não abre `/dashboard`.
+Depois, sessão antiga não abre `/dashboard`.
 
 ## Agência, compartilhamento, campanhas e app futuro
 
 ### Permissão Agência → Empresa
 
-Referência conceitual: GitHub (melhor comparação que Instagram). Proprietário envia convite;
-convidado aceita antes de virar colaborador; organizações têm níveis granulares Read, Triage, Write,
-Maintain e Admin. ²² API de convites distingue aceitar e recusar. ²³
+Modelo GitHub (convite aceito antes de virar colaborador; níveis Read, Triage, Write, Maintain, Admin;
+aceitar e recusar distintos). https://docs.github.com/en/rest/collaborators/invitations
 
 ```
 AGÊNCIA
@@ -1061,8 +1029,8 @@ EMPRESA recebe convite
 └──────────────────────────┘
 ```
 
-Sem bearer token permanente que “dá acesso à empresa”. Token só comprova/consome o convite. Após
-aceite, autorização existe como dado relacional no banco:
+Sem bearer token permanente que “dá acesso à empresa”. Token só comprova/consome o convite; após
+aceite, autorização = dado relacional:
 
 ```
 agency_links
@@ -1077,7 +1045,7 @@ link_id
 permission
 ```
 
-Empresa revoga:
+Revogação:
 
 ```
 status = revoked
@@ -1087,8 +1055,10 @@ Próxima requisição da Agência falha.
 
 ### Print da campanha do Facebook
 
-Viável e bom para UX, mas IA nunca grava silenciosamente valores financeiros. AWS Textract extrai
-texto, formulários, tabelas e elementos estruturados de documentos/imagens, com níveis de confiança. ²⁴
+IA nunca grava silenciosamente valores financeiros. AWS Textract extrai texto/formulários/tabelas com
+níveis de confiança. GuardDuty Malware Protection for S3 analisa objetos novos em ambiente isolado e
+gera finding se houver malware. Meta Marketing API/Insights (impressões, cliques, gasto, alcance,
+ações), com autorização do cliente, é a fonte de verdade superior; print = conveniência de entrada.
 
 ```
 PRINT
@@ -1116,15 +1086,9 @@ TRANSACTION
 campaign_metrics
 ```
 
-- GuardDuty Malware Protection for S3 verifica objetos recém-enviados em ambiente isolado; malware gera
-  finding. ²⁵
-- Evolução comercial superior: Meta Marketing API/Insights quando o cliente autorizar integração
-  (impressões, cliques, gasto, alcance, ações). Print vira conveniência de entrada, não fonte de
-  verdade. ²⁶
-
 ### PWA e aplicativo futuro
 
-CRM nasce Laravel web, depois vira app. Primeiro lançamento:
+Primeiro lançamento (Web App Manifest + service worker; instalação varia por plataforma/navegador):
 
 ```
 Laravel + React
@@ -1138,10 +1102,7 @@ PWA
 instalável / adicionar à tela inicial
 ```
 
-Web App Manifest = metadados para o navegador tratar a app como PWA instalada; service workers dão
-capacidades extras; suporte e instalação variam por plataforma/navegador. ²⁷
-
-Depois:
+Depois (Capacitor: Web, iOS, Android; cliente mobile separado usa Sanctum):
 
 ```
         MESMO BACKEND LARAVEL
@@ -1153,21 +1114,14 @@ Depois:
                     Capacitor
 ```
 
-Capacitor: feito para projetos web modernos; suporta Web, iOS e Android. ²⁸ Cliente mobile separado:
-Laravel indica Sanctum (web UI + API + mobile). ²⁹
-
 **Não precisamos reescrever PostgreSQL, campanhas, leads, Policies ou regras de negócio para criar o
 app.** Troca-se/adiciona-se o cliente; Laravel continua backend.
 
 ## Escala, mercado e plano real de execução
 
-- Nenhuma arquitetura garante “nunca cairá” ou “nunca vazará”; análise responsável não promete isso.
-- Grande escala = defesa em profundidade. Vercel: firewall com mitigação de DDoS + WAF; checklist de
-  produção (headers, WAF, rate limiting, observabilidade, testes). ³⁰ OpenAI: criptografia em trânsito
-  e em repouso, certificações — evidência de camadas, não invulnerabilidade. ³¹ AWS: CloudFront com WAF
-  e mitigação DDoS; doc recomenda arquitetura resistente a DDoS; AWS WAF controla tráfego HTTP e
-  regras de proteção. ³²
-- MVP: não pagar/configurar toda essa infra agora; código nasce preparado para chegar nela.
+- Nenhuma arquitetura garante zero queda/vazamento; defesa em profundidade (CDN/WAF/mitigação DDoS,
+  rate limit, criptografia, observabilidade).
+- MVP não paga infra pesada, mas o código nasce preparado para chegar nela.
 
 Progressão (plano do MVP e além):
 
@@ -1185,11 +1139,11 @@ Progressão (plano do MVP e além):
 | Crescimento | containers horizontais + managed PostgreSQL/Redis |
 | Grande escala | CDN/WAF/autoscaling/filas/monitoramento avançado |
 
-- App stateless fora de Redis/PostgreSQL/S3: novas instâncias sem quebrar sessão. Filas Laravel com
-  Redis, SQS e outros; OCR, importação e e-mail não bloqueiam a requisição HTTP. ³³
-- Docker reproduz ambiente e empacota; não é sistema de segurança completo. Docker recomenda reduzir
-  privilégios/capabilities, processos não privilegiados, sem segredos nas imagens. ³⁴
-- RLS, se adotado depois, é cinto de segurança adicional:
+- App stateless fora de Redis/PostgreSQL/S3: novas instâncias sem quebrar sessão. OCR, importação e
+  e-mail em fila (Redis, SQS etc.), fora da requisição HTTP.
+- Docker reproduz ambiente e empacota; não é sistema de segurança. Reduzir privilégios/capabilities,
+  processo não privilegiado, sem segredos na imagem.
+- RLS, se adotado, é cinto adicional; nunca justifica remover camada:
 
 ```
 Policy Laravel
@@ -1201,12 +1155,11 @@ PostgreSQL constraints
 opcionalmente RLS
 ```
 
-  Não justifica remover nenhuma camada anterior. RLS restringe linhas em SELECT/INSERT/UPDATE/DELETE,
-  mas proprietários ou papéis privilegiados podem contorná-la. ⁷
-
 ### Critério para liberar o MVP
 
-Primeira versão não é liberada enquanto estes testes não passarem:
+Primeira versão não sai enquanto estes testes não passarem (situação atual: 10.3). Cada endpoint com
+identificador de objeto verifica autorização de nível de objeto (OWASP API1:2023
+https://api-security.owasp.org/editions/2023/en/0xa1-broken-object-level-authorization/).
 
 | Teste | Resultado obrigatório |
 |---|---|
@@ -1229,12 +1182,11 @@ Primeira versão não é liberada enquanto estes testes não passarem:
 | exclusão de lead | dependências previstas tratadas em transação |
 | restore do backup | comprovadamente funcional |
 
-OWASP: cada endpoint que recebe identificador de objeto verifica autorização de nível de objeto. ³⁵
-
-LGPD: MVP nasce com aviso de privacidade, finalidade e retenção de dados, mecanismos de acesso,
-política de cookies aplicável e procedimento para incidentes. ANPD tem guia de segurança e checklist;
-incidentes com potencial de risco ou dano relevante: avaliação e comunicação conforme regras da
-autoridade, prazo de três dias úteis nos casos comunicáveis. ³⁶
+LGPD: MVP nasce com aviso de privacidade, finalidade e retenção, mecanismos de acesso, política de
+cookies aplicável e procedimento de incidentes. ANPD (guia de segurança + checklist): incidente com
+risco/dano relevante exige avaliação e comunicação conforme regras da autoridade, prazo de 3 dias
+úteis nos casos comunicáveis.
+https://www.gov.br/anpd/pt-br/centrais-de-conteudo/materiais-educativos-e-publicacoes/guia-orientativo-sobre-seguranca-da-informacao-para-agentes-de-tratamento-de-pequeno-porte
 
 Base aprovada:
 
@@ -1243,48 +1195,6 @@ Base aprovada:
 > recursos, nenhuma autoridade vinda de user_id/account_id do frontend,
 > métricas históricas, convites granulares Agência↔Empresa, uploads privados e jobs
 > assíncronos.**
-
-Resolve o MVP sem infra desnecessariamente complexa e evita decisões que obrigariam reescrever
-autenticação, banco e permissões quando o CRM crescer.
-
-## Relatório em PDF
-
-Relatório técnico consolidado em cinco páginas: decisões arquiteturais, modelo de banco, autenticação,
-segurança, fluxo Agência↔Empresa, campanhas/OCR, PWA, infraestrutura, ordem de desenvolvimento e
-critérios de aceite. Título: “Arquitetura Segura do CRM Laravel MVP”.
-
-### Referências
-
-1, 6, 19, 21, 29. Authentication | Laravel 13.x — https://laravel.com/framework/docs/13.x/authentication
-2, 5. Starter Kits | Laravel 13.x — https://laravel.com/framework/docs/starter-kits
-3. PostgreSQL: CVE-2026-14666: PostgreSQL row security caching disregards role modifications — https://www.postgresql.org/support/security/CVE-2026-14666/
-4. Hospedagem de sites a partir de R$ 5,99/mês — https://www.hostinger.com/br/hospedagem-de-sites?no_head=1
-7. PostgreSQL: Documentation: 18: 5.9. Row Security Policies — https://www.postgresql.org/docs/18/ddl-rowsecurity.html
-8. Authorization | Laravel 13.x — https://laravel.com/framework/docs/13.x/authorization
-9, 20. Insecure Direct Object Reference Prevention - OWASP Cheat Sheet Series — https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html
-10. API3:2023 Broken Object Property Level Authorization - OWASP API Security Top 10 — https://api-security.owasp.org/editions/2023/en/0xa3-broken-object-property-level-authorization/
-11. Session Management - OWASP Cheat Sheet Series — https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html
-12. Illuminate\Session\SessionManager | Laravel API — https://api.laravel.com/docs/13.x/Illuminate/Session/SessionManager.html
-13. CSRF Protection | Laravel 13.x — https://laravel.com/framework/docs/13.x/csrf
-14. NIST Special Publication 800-63B — https://pages.nist.gov/800-63-4/sp800-63b.html?locale=en
-15. Hashing | Laravel 13.x — https://laravel.com/framework/docs/hashing
-16. Using SSL with a PostgreSQL DB instance - Amazon Relational Database Service — https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/PostgreSQL.Concepts.General.SSL.html
-17. Encryption | Laravel 12.x — https://laravel.com/framework/docs/12.x/encryption
-18. Illuminate\Validation\Rules\ImageFile | Laravel API — https://api.laravel.com/docs/13.x/Illuminate/Validation/Rules/ImageFile.html
-22. Inviting collaborators to a personal repository - GitHub Docs — https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/repository-access-and-collaboration/inviting-collaborators-to-a-personal-repository
-23. REST API endpoints for repository invitations - GitHub Docs — https://docs.github.com/en/rest/collaborators/invitations
-24. AnalyzeDocument - Amazon Textract — https://docs.aws.amazon.com/pt_br/textract/latest/APIReference/API_AnalyzeDocument.html
-25. How does Malware Protection for S3 work? - Amazon GuardDuty — https://docs.aws.amazon.com/guardduty/latest/ug/how-malware-protection-for-s3-gdu-works.html
-26. Get Ad Insights [L1] | Facebook Marketing API | Postman API Network — https://www.postman.com/meta/facebook-marketing-api/request/u07tack/get-ad-insights-l1
-27. Installation | web.dev — https://web.dev/learn/pwa/installation?hl=en
-28. Environment Setup | Capacitor Documentation — https://capacitorjs.com/docs/getting-started/environment-setup
-30. Vercel Firewall — https://vercel.com/docs/vercel-firewall
-31. Segurança e privacidade na OpenAI | OpenAI — https://openai.com/pt-BR/security-and-privacy/
-32. Configure secure access and restrict access to content - Amazon CloudFront — https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/SecurityAndPrivateContent.html
-33. Queues | Laravel 13.x — https://laravel.com/framework/docs/13.x/queues
-34. Docker Engine security | Docker Docs — https://docs.docker.com/engine/security/
-35. API1:2023 Broken Object Level Authorization - OWASP API Security Top 10 — https://api-security.owasp.org/editions/2023/en/0xa1-broken-object-level-authorization/
-36. Guia orientativo sobre segurança da informação para agentes de tratamento de pequeno porte — https://www.gov.br/anpd/pt-br/centrais-de-conteudo/materiais-educativos-e-publicacoes/guia-orientativo-sobre-seguranca-da-informacao-para-agentes-de-tratamento-de-pequeno-porte
 
 ---
 
@@ -1295,3 +1205,4 @@ critérios de aceite. Título: “Arquitetura Segura do CRM Laravel MVP”.
 | 2026-10-27 | Criação do CLAUDE.md: instruções para o Claude, mapeamento completo do MVP v1 (commits até `aa06919`), segurança implementada, gap analysis contra o documento de arquitetura e anexo integral do PDF. Nenhum código alterado. |
 | 2026-10-27 | `/CLAUDE.md` removido do `.gitignore`: este arquivo passa a ser versionado com o projeto. |
 | 2026-10-27 | CLAUDE.md comprimido; anexo (seção 12) passa a ser especificação viva e atualizável (regra 0.4 alterada). Nenhum código alterado. |
+| 2026-10-27 | Segunda passada: deduplicação, remoção de prosa/referências numeradas, regras 8–12 (um fato um lugar, rotação do changelog, orçamento de 650 linhas que nunca vence o contexto). Nenhum código alterado. |
