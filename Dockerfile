@@ -21,5 +21,5 @@ USER www-data
 
 RUN composer install --no-dev --optimize-autoloader --no-interaction \
     && npm ci \
-    && npm run build \
+    && APP_ENV=local npm run build \
     && rm -rf node_modules
