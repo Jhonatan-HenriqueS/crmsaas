@@ -154,7 +154,8 @@ test('mutations require csrf from the current session', function (string $method
     });
     $membership = Membership::factory()->create();
     $category = LeadCategory::factory()->for($membership->account)->create(['name' => 'Original', 'color' => '#112233']);
-    $payload = $method === 'PATCH' ? ['name' => 'Alterada', 'color' => '#445566'] : [];
+    $this->actingAs($membership->user);
+    $payload = $method === 'PATCH' ? ['name' => 'Alterada', 'color' => '#445566'] : $this->categoryDeletionPayload($category);
 
     $this->actingAs($membership->user)->withSession(['_token' => 'category-mutation-csrf'])
         ->withHeader('Sec-Fetch-Site', 'cross-site')->call($method, route('categories.update', $category), [...$payload, '_token' => $token])
@@ -179,12 +180,12 @@ test('deletion removes only the selected owned category and updates the listing'
     $otherBefore = $other->fresh()->getAttributes();
     $foreignBefore = $foreign->fresh()->getAttributes();
 
-    $this->actingAs($membership->user)->delete(route('categories.destroy', $category))
+    $this->actingAs($membership->user)->delete(route('categories.destroy', $category), $this->categoryDeletionPayload($category))
         ->assertRedirect(route('categories.index'))
         ->assertInertiaFlash('toast', ['type' => 'success', 'operation' => 'deleted', 'message' => 'Categoria excluída com sucesso!']);
 
     $this->assertModelMissing($category);
-    $this->assertDatabaseCount('lead_categories', 2);
+    expect(LeadCategory::query()->whereNull('system_key')->count())->toBe(2);
     expect($other->fresh()->getAttributes())->toBe($otherBefore);
     expect($foreign->fresh()->getAttributes())->toBe($foreignBefore);
     $this->get(route('categories.index'))->assertInertia(fn (Assert $page) => $page
@@ -211,12 +212,12 @@ test('a database failure after deletion rolls back the category and emits no suc
     LeadCategory::deleted(fn () => DB::statement('select missing_category_test_function()'));
 
     try {
-        $this->actingAs($membership->user)->deleteJson(route('categories.destroy', $category))
+        $this->actingAs($membership->user)->deleteJson(route('categories.destroy', $category), $this->categoryDeletionPayload($category))
             ->assertServerError()->assertInertiaFlashMissing('toast');
 
         $this->assertModelExists($category);
         $this->assertModelExists($other);
-        $this->assertDatabaseCount('lead_categories', 2);
+        expect(LeadCategory::query()->whereNull('system_key')->count())->toBe(2);
         Exceptions::assertReported(QueryException::class);
     } finally {
         LeadCategory::flushEventListeners();
@@ -229,7 +230,7 @@ test('a vetoed deletion preserves its category and emits no success', function (
     LeadCategory::deleting(fn () => false);
 
     try {
-        $this->actingAs($membership->user)->deleteJson(route('categories.destroy', $category))
+        $this->actingAs($membership->user)->deleteJson(route('categories.destroy', $category), $this->categoryDeletionPayload($category))
             ->assertConflict()->assertInertiaFlashMissing('toast');
         $this->assertModelExists($category);
     } finally {
@@ -257,7 +258,7 @@ test('nonexistent categories return 404 for either mutation', function (string $
     $this->actingAs($membership->user)->json($method, route('categories.update', 999999), ['name' => 'Ausente', 'color' => '#112233'])
         ->assertNotFound()->assertInertiaFlashMissing('toast');
 
-    $this->assertDatabaseEmpty('lead_categories');
+    expect(LeadCategory::query()->whereNull('system_key')->count())->toBe(0);
 })->with(['PATCH', 'DELETE']);
 
 // Real Lead cascade and rollback coverage is in LeadIntegrityTest.

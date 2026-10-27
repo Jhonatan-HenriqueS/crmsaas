@@ -8,9 +8,12 @@ use App\Http\Requests\MutateLeadCategoryRequest;
 use App\Http\Requests\StoreLeadCategoryRequest;
 use App\Models\Account;
 use App\Models\LeadCategory;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -24,20 +27,24 @@ class LeadCategoryController extends Controller
         Gate::authorize('view', $account);
 
         $total = $account->leads()->count();
-        $categories = $account->leadCategories()->select(['id', 'name', 'color'])
+        $query = $account->leadCategories()->select(['id', 'name', 'color', 'system_key'])
             ->withCount(['leads' => fn (Builder $query) => $query->where('account_id', $account->id)])
-            ->orderByDesc('id')->simplePaginate(12)
-            ->through(static function (LeadCategory $category) use ($total): array {
-                $count = (int) $category->getAttribute('leads_count');
+            ->orderByDesc('id');
+        $serialize = function (LeadCategory $category) use ($total, $account): array {
+            $count = (int) $category->getAttribute('leads_count');
 
-                return [
-                    'id' => $category->id,
-                    'name' => $category->name,
-                    'color' => $category->color,
-                    'leads_count' => $count,
-                    'percentage' => $total > 0 ? round($count / $total * 100, 1) : 0.0,
-                ];
-            });
+            return [
+                'id' => $category->id,
+                'name' => $category->name,
+                'color' => $category->color,
+                'is_sale_completed' => $category->is_sale_completed,
+                'leads_count' => $count,
+                'percentage' => $total > 0 ? round($count / $total * 100, 1) : 0.0,
+                'deletion_confirmation' => $category->is_sale_completed ? null : Crypt::encryptString($this->deletionConfirmationData($account, $category, $count)),
+            ];
+        };
+        $programmed = (clone $query)->whereNotNull('system_key')->get()->map($serialize)->all();
+        $categories = (clone $query)->whereNull('system_key')->simplePaginate(12)->through($serialize);
 
         return Inertia::render('categories/index', [
             'categories' => [
@@ -46,6 +53,7 @@ class LeadCategoryController extends Controller
                 'hasMorePages' => $categories->hasMorePages(),
             ],
             'totalLeads' => $total,
+            'programmedCategories' => $programmed,
             'initialColor' => $this->availableColor($account),
         ]);
     }
@@ -93,13 +101,40 @@ class LeadCategoryController extends Controller
         return to_route('categories.index');
     }
 
-    public function destroy(MutateLeadCategoryRequest $request): RedirectResponse
+    public function destroy(MutateLeadCategoryRequest $request, CurrentAccount $currentAccount): RedirectResponse
     {
-        abort_unless($request->category()->deleteOrFail(), 409);
+        $account = $currentAccount->get();
+        $id = $request->category()->id;
+        DB::transaction(function () use ($request, $account, $id): void {
+            $category = $account->leadCategories()->lockForUpdate()->findOrFail($id);
+            abort_if($category->is_sale_completed, 403, 'A categoria de finalização não pode ser excluída.');
+            $count = $account->leads()->where('category_id', $category->id)->count();
+
+            try {
+                $confirmation = Crypt::decryptString($request->validated('confirmation'));
+            } catch (DecryptException) {
+                throw ValidationException::withMessages([
+                    'confirmation' => 'Confirmação inválida. Atualize a página e revise a exclusão.',
+                ]);
+            }
+
+            if (! hash_equals($this->deletionConfirmationData($account, $category, $count), $confirmation)) {
+                throw ValidationException::withMessages([
+                    'confirmation' => 'A categoria ou a quantidade de leads mudou. Revise os dados e confirme novamente.',
+                ]);
+            }
+
+            abort_unless($category->deleteOrFail(), 409);
+        }, attempts: 3);
 
         FlashCrudSuccess::deleted('Categoria', feminine: true);
 
         return to_route('categories.index');
+    }
+
+    private function deletionConfirmationData(Account $account, LeadCategory $category, int $count): string
+    {
+        return json_encode([$account->id, $category->id, $category->name, $count], JSON_THROW_ON_ERROR);
     }
 
     private function availableColor(Account $account): string

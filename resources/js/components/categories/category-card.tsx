@@ -42,7 +42,9 @@ export function CategoryCard({
                             category={category}
                             visibleColors={visibleColors}
                         />
-                        <DeleteCategoryDialog category={category} />
+                        {!category.is_sale_completed && (
+                            <DeleteCategoryDialog category={category} />
+                        )}
                     </div>
                 </div>
                 <div className="flex flex-wrap items-end justify-between gap-3">

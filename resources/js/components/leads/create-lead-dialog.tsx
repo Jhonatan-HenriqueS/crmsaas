@@ -1,9 +1,11 @@
-import { useForm } from '@inertiajs/react';
-import { LoaderCircle, Plus } from 'lucide-react';
+import { router, useForm, usePage } from '@inertiajs/react';
+import { LoaderCircle, Pencil, Plus } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
+import { toast } from 'sonner';
 import InputError from '@/components/input-error';
 import { LeadCategorySelector } from '@/components/leads/lead-category-selector';
+import { SaleTransitionDialog } from '@/components/leads/sale-transition-dialog';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -18,9 +20,13 @@ import { Label } from '@/components/ui/label';
 import {
     leadCreateClass,
     leadInputClass,
+    formatLeadMoneyInput,
     parseLeadMoney,
 } from '@/lib/lead-format';
-import { store } from '@/routes/leads';
+import { leadTransition } from '@/lib/lead-transition';
+import type { LeadTransition } from '@/lib/lead-transition';
+import { store, update } from '@/routes/leads';
+import type { Lead } from '@/types/lead';
 import type { LeadCategory } from '@/types/lead-category';
 
 type LeadForm = {
@@ -43,27 +49,59 @@ const emptyForm: LeadForm = {
     charged_amount: '',
 };
 
-export function CreateLeadDialog() {
+type LeadDialogProps =
+    | { mode: 'create' }
+    | { mode: 'edit'; lead: Lead; page: number };
+
+export function CreateLeadDialog(props: LeadDialogProps) {
+    const editing = props.mode === 'edit';
+    const initialData: LeadForm = editing
+        ? {
+              name: props.lead.name,
+              description: props.lead.description ?? '',
+              category_id: String(props.lead.category_id),
+              first_contact_date: props.lead.first_contact_date,
+              next_contact_date: props.lead.next_contact_date ?? '',
+              potential_amount: formatLeadMoneyInput(
+                  props.lead.potential_amount,
+              ),
+              charged_amount: formatLeadMoneyInput(props.lead.charged_amount),
+          }
+        : emptyForm;
+    const { selectedCategory } = usePage<{
+        selectedCategory?: LeadCategory | null;
+    }>().props;
     const [open, setOpen] = useState(false);
     const [selected, setSelected] = useState<LeadCategory | null>(null);
     const [requestError, setRequestError] = useState<string>();
+    const [transition, setTransition] = useState<LeadTransition | null>(null);
     const submitting = useRef(false);
-    const form = useForm<LeadForm>(emptyForm);
-    const generalError = (form.errors as Record<string, string | undefined>)
-        .form;
+    const form = useForm<LeadForm>(initialData);
+    const actionErrors = form.errors as Record<string, string | undefined>;
+    const generalError =
+        actionErrors.form ||
+        actionErrors.confirm_completion ||
+        actionErrors.confirm_reopening;
 
     function changeOpen(next: boolean) {
         if (form.processing || submitting.current) return;
         if (next) {
-            form.resetAndClearErrors();
-            setSelected(null);
+            form.clearErrors();
+            form.setDefaults(initialData);
+            form.setData(initialData);
+            setSelected(editing ? props.lead.category : null);
             setRequestError(undefined);
+            setTransition(null);
         }
         setOpen(next);
     }
 
     function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        send(null);
+    }
+
+    function send(confirmation: LeadTransition | null) {
         if (submitting.current || form.processing) return;
         form.clearErrors();
         const potential = parseLeadMoney(form.data.potential_amount);
@@ -81,6 +119,17 @@ export function CreateLeadDialog() {
                 );
             return;
         }
+        const requiredTransition = leadTransition(
+            editing ? props.lead.category : null,
+            selected,
+        );
+        if (
+            requiredTransition !== null &&
+            confirmation !== requiredTransition
+        ) {
+            setTransition(requiredTransition);
+            return;
+        }
         submitting.current = true;
         setRequestError(undefined);
         form.transform((data) => ({
@@ -89,47 +138,97 @@ export function CreateLeadDialog() {
             next_contact_date: data.next_contact_date || null,
             potential_amount: potential,
             charged_amount: charged,
+            confirm_completion: confirmation === 'complete',
+            confirm_reopening: confirmation === 'reopen',
         }));
-        form.submit(store(), {
-            preserveScroll: true,
-            onSuccess: () => {
-                setOpen(false);
-                form.reset();
-                setSelected(null);
+        form.submit(
+            editing
+                ? update(props.lead.id, {
+                      query: {
+                          page: props.page,
+                          category: selectedCategory?.id,
+                      },
+                  })
+                : store({ query: { category: selectedCategory?.id } }),
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setOpen(false);
+                    form.reset();
+                    setSelected(null);
+                    setTransition(null);
+                },
+                onError: () => setOpen(true),
+                onHttpException: (response) => {
+                    if (editing && response.status === 404) {
+                        toast.error(
+                            'Este lead não está mais disponível. A listagem será atualizada.',
+                        );
+                        setTimeout(
+                            () =>
+                                router.reload({
+                                    only: [
+                                        'leads',
+                                        'selectedCategory',
+                                        'completionCategory',
+                                    ],
+                                }),
+                            0,
+                        );
+                        return false;
+                    }
+                    setRequestError(
+                        editing
+                            ? 'Não foi possível salvar o lead. Verifique sua sessão e tente novamente.'
+                            : 'Não foi possível criar o lead. Verifique sua sessão e tente novamente.',
+                    );
+                    return false;
+                },
+                onNetworkError: () => {
+                    setRequestError(
+                        'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.',
+                    );
+                    return false;
+                },
+                onFinish: () => {
+                    submitting.current = false;
+                },
             },
-            onError: () => setOpen(true),
-            onHttpException: () => {
-                setRequestError(
-                    'Não foi possível criar o lead. Verifique sua sessão e tente novamente.',
-                );
-                return false;
-            },
-            onNetworkError: () => {
-                setRequestError(
-                    'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.',
-                );
-                return false;
-            },
-            onFinish: () => {
-                submitting.current = false;
-            },
-        });
+        );
     }
 
     return (
         <Dialog open={open} onOpenChange={changeOpen}>
             <DialogTrigger asChild>
-                <Button
-                    type="button"
-                    disabled={form.processing}
-                    className="min-h-11 w-full rounded-xl bg-primary px-5 text-white shadow-sm hover:bg-primary/90 sm:w-auto"
-                >
-                    <Plus className="size-4" aria-hidden="true" />
-                    Criar lead
-                </Button>
+                {editing ? (
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        disabled={form.processing}
+                        aria-label={`Editar ${props.lead.name}`}
+                        title="Editar lead"
+                        className="size-9 rounded-xl border-white/10 bg-white/[0.02] text-muted-foreground hover:bg-primary/15 hover:text-foreground"
+                    >
+                        <Pencil className="size-3.5" aria-hidden="true" />
+                    </Button>
+                ) : (
+                    <Button
+                        type="button"
+                        disabled={form.processing}
+                        className="min-h-11 w-full rounded-xl bg-primary px-5 text-white shadow-sm hover:bg-primary/90 sm:w-auto"
+                    >
+                        <Plus className="size-4" aria-hidden="true" />
+                        Criar lead
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent
-                closeLabel="Fechar cadastro de lead"
+                closeLabel={
+                    editing
+                        ? 'Fechar edição de lead'
+                        : 'Fechar cadastro de lead'
+                }
                 closeDisabled={form.processing}
                 aria-busy={form.processing}
                 onEscapeKeyDown={(event) => {
@@ -142,14 +241,15 @@ export function CreateLeadDialog() {
             >
                 <DialogHeader className="gap-3 text-left">
                     <p className="text-[10px] font-medium tracking-[0.2em] text-muted-foreground uppercase">
-                        Uma nova oportunidade
+                        {editing ? 'Sua oportunidade' : 'Uma nova oportunidade'}
                     </p>
                     <DialogTitle className="pr-6 text-2xl font-semibold tracking-tight">
-                        Novo lead
+                        {editing ? 'Editar lead' : 'Novo lead'}
                     </DialogTitle>
                     <DialogDescription className="text-sm leading-relaxed">
-                        Cadastre uma oportunidade, organize sua etapa e
-                        acompanhe os próximos contatos.
+                        {editing
+                            ? 'Atualize as informações desta oportunidade e mantenha seus contatos organizados.'
+                            : 'Cadastre uma oportunidade, organize sua etapa e acompanhe os próximos contatos.'}
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={submit} className="space-y-5">
@@ -366,7 +466,7 @@ export function CreateLeadDialog() {
                     <Button
                         type="submit"
                         disabled={form.processing}
-                        className={`${leadCreateClass} h-12 w-full`}
+                        className={`${leadCreateClass} h-12 w-full [overflow-wrap:anywhere] whitespace-normal`}
                     >
                         {form.processing && (
                             <LoaderCircle
@@ -374,9 +474,27 @@ export function CreateLeadDialog() {
                                 aria-hidden="true"
                             />
                         )}
-                        {form.processing ? 'Criando lead...' : 'Cadastrar lead'}
+                        {form.processing
+                            ? editing
+                                ? 'Salvando alterações...'
+                                : 'Criando lead...'
+                            : editing
+                              ? 'Salvar alterações'
+                              : 'Cadastrar lead'}
                     </Button>
                 </form>
+                <SaleTransitionDialog
+                    open={transition !== null}
+                    onOpenChange={(next) => {
+                        if (!next && !submitting.current) setTransition(null);
+                    }}
+                    leadName={form.data.name}
+                    categoryName={selected?.name ?? ''}
+                    transition={transition ?? 'complete'}
+                    processing={form.processing}
+                    error={Object.values(form.errors)[0] || requestError}
+                    onConfirm={() => send(transition)}
+                />
             </DialogContent>
         </Dialog>
     );

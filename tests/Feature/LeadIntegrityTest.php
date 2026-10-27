@@ -85,7 +85,7 @@ test('authorized category deletion cascades only to its linked leads', function 
     $otherCategories = LeadCategory::query()->whereKey([$independent->category_id, $foreign->category_id])->get()
         ->mapWithKeys(fn (LeadCategory $record): array => [$record->id => $record->getRawOriginal()])->all();
 
-    $this->actingAs($membership->user)->delete(route('categories.destroy', $category))
+    $this->actingAs($membership->user)->delete(route('categories.destroy', $category), $this->categoryDeletionPayload($category))
         ->assertRedirect(route('categories.index'))
         ->assertInertiaFlash('toast', ['type' => 'success', 'operation' => 'deleted', 'message' => 'Categoria excluída com sucesso!']);
 
@@ -99,7 +99,7 @@ test('authorized category deletion cascades only to its linked leads', function 
         expect(LeadCategory::query()->findOrFail($id)->getRawOriginal())->toBe($attributes);
     }
     $this->assertDatabaseCount('leads', 2);
-    $this->assertDatabaseCount('lead_categories', 2);
+    expect(LeadCategory::query()->whereNull('system_key')->count())->toBe(2);
     expect(DB::select('PRAGMA foreign_key_check'))->toBe([]);
 });
 
@@ -140,7 +140,7 @@ test('a database failure after category deletion rolls back its cascaded leads',
     LeadCategory::deleted(fn () => DB::statement('select missing_lead_cascade_test_function()'));
 
     try {
-        $this->actingAs($membership->user)->deleteJson(route('categories.destroy', $lead->category_id))
+        $this->actingAs($membership->user)->deleteJson(route('categories.destroy', $lead->category_id), $this->categoryDeletionPayload($lead->category))
             ->assertServerError()->assertInertiaFlashMissing('toast');
 
         $this->assertModelExists($lead->category);

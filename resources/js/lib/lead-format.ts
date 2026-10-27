@@ -49,6 +49,11 @@ export function formatLeadMoney(value: string | null): string {
     return `R$ ${new Intl.NumberFormat('pt-BR').format(BigInt(integer))},${fraction.padEnd(2, '0')}`;
 }
 
+/** Refill the existing BRL input without changing null into zero. */
+export function formatLeadMoneyInput(value: string | null): string {
+    return value === null ? '' : formatLeadMoney(value).slice(3);
+}
+
 /** Defense in depth for database colors used in CSS; never interpolate arbitrary CSS. */
 export function categoryColor(value: string): string {
     return /^#[0-9a-f]{6}$/i.test(value) ? value : '#6d54b5';

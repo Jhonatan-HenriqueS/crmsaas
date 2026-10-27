@@ -90,9 +90,9 @@ test('category options use bounded cursor pages and expose every own category on
     $response = $this->actingAs($own->user)->getJson(route('leads.category-options', ['account_id' => $other->account_id]))
         ->assertOk()->assertJsonCount(30, 'data')->assertJsonPath('data.0.id', $categories->last()->id)
         ->assertJsonMissingPath('data.0.account_id')->assertJsonMissingPath('data.0.created_at');
-    expect(array_keys($response->json('data.0')))->toBe(['id', 'name', 'color']);
+    expect(array_keys($response->json('data.0')))->toBe(['id', 'name', 'color', 'is_sale_completed']);
     $this->getJson(route('leads.category-options', ['cursor' => $response->json('nextCursor')]))
-        ->assertOk()->assertJsonCount(2, 'data')->assertJsonPath('data.1.id', $categories->first()->id)
+        ->assertOk()->assertJsonCount(3, 'data')->assertJsonPath('data.1.id', $categories->first()->id)->assertJsonPath('data.2.is_sale_completed', true)
         ->assertJsonPath('nextCursor', null);
 });
 
@@ -128,16 +128,16 @@ test('production lead creation retains csrf protection', function () {
     $this->assertDatabaseEmpty('leads');
 });
 
-test('lead edit delete and completion are not published', function (string $method) {
+test('leads reject POST on the individual resource url', function () {
     $own = Membership::factory()->create();
     $lead = Lead::factory()->for($own->account)->create();
 
-    $this->actingAs($own->user)->json($method, '/leads/'.$lead->id, ['name' => 'Alterado'])->assertNotFound();
+    $this->actingAs($own->user)->postJson('/leads/'.$lead->id, ['name' => 'Alterado'])->assertStatus(405);
     $this->assertModelExists($lead);
     $this->assertDatabaseMissing('leads', ['name' => 'Alterado']);
-})->with(['PATCH', 'DELETE', 'POST']);
+});
 
-test('the Inertia list uses a count a bounded page and a single category query', function () {
+test('the Inertia list uses a count a bounded page and constant category queries', function () {
     $own = Membership::factory()->create();
     Lead::factory()->count(12)->for($own->account)->create();
     DB::enableQueryLog();
@@ -146,7 +146,7 @@ test('the Inertia list uses a count a bounded page and a single category query',
         $this->actingAs($own->user)->get(route('leads.index'))->assertOk();
         $queries = collect(DB::getQueryLog());
         expect($queries->filter(fn (array $query): bool => str_contains($query['query'], 'from "leads"')))->toHaveCount(2);
-        expect($queries->filter(fn (array $query): bool => str_contains($query['query'], 'from "lead_categories"')))->toHaveCount(1);
+        expect($queries->filter(fn (array $query): bool => str_contains($query['query'], 'from "lead_categories"')))->toHaveCount(2);
     } finally {
         DB::disableQueryLog();
         DB::flushQueryLog();

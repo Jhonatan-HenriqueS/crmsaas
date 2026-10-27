@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Actions\EnsureSaleCompletedCategory;
 use Database\Factories\AccountFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,6 +22,24 @@ class Account extends Model
     use HasFactory;
 
     public const TYPES = ['empresa', 'agencia'];
+
+    /** @param array<string, mixed> $options */
+    public function save(array $options = []): bool
+    {
+        if ($this->exists) {
+            return parent::save($options);
+        }
+
+        return $this->getConnection()->transaction(function () use ($options): bool {
+            if (! parent::save($options)) {
+                return false;
+            }
+
+            app(EnsureSaleCompletedCategory::class)->handle($this);
+
+            return true;
+        });
+    }
 
     /** @return HasMany<Membership, $this> */
     public function memberships(): HasMany

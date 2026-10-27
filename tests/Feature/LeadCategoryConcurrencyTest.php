@@ -96,7 +96,8 @@ test('two validated concurrent category writes preserve uniqueness and return on
         expect(collect($responses)->pluck('status')->sort()->values()->all())->toBe([302, 422]);
         $duplicate = collect($responses)->firstWhere('status', 422);
         expect($duplicate['body']['errors']['color'][0])->toBe('Esta cor já está sendo utilizada por outra categoria. Escolha uma cor diferente.');
-        $records = DB::connection('category_race')->table('lead_categories')->get();
+        $records = DB::connection('category_race')->table('lead_categories')->whereNull('system_key')->get();
+        expect(DB::connection('category_race')->table('lead_categories')->where('system_key', 'sale_completed')->count())->toBe(1);
         expect($records)->toHaveCount($method === 'PATCH' ? 2 : 1);
         expect($records->where('color', '#7c65c1'))->toHaveCount(1);
         expect($records->pluck('account_id')->unique()->all())->toBe([$membership->account_id]);

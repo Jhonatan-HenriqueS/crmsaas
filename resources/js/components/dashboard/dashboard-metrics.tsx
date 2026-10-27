@@ -25,6 +25,7 @@ import {
     dashboardCardClass,
     dashboardPeriods,
     formatCount,
+    formatPercentage,
 } from './dashboard-data';
 import type {
     DashboardData,
@@ -88,7 +89,7 @@ export function DashboardMetrics({
         {
             title: 'Leads vendidos',
             value: data.soldLeads,
-            label: 'Métrica disponível em breve',
+            label: `${formatPercentage(data.soldPercentage)} do total de leads`,
             icon: CircleDollarSign,
             green: true,
         },

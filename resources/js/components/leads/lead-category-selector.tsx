@@ -1,6 +1,6 @@
-import { Link, useHttp } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import { Check, ChevronDown, LoaderCircle, Tags } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,8 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { categoryColor, leadInputClass } from '@/lib/lead-format';
 import { index as categoriesIndex } from '@/routes/categories';
-import { categoryOptions } from '@/routes/leads';
-import type { LeadCategoryOptions } from '@/types/lead';
+import { useLeadCategoryOptions } from '@/hooks/use-lead-category-options';
 import type { LeadCategory } from '@/types/lead-category';
 
 export function LeadCategorySelector({
@@ -31,60 +30,20 @@ export function LeadCategorySelector({
     describedBy: string;
 }) {
     const [open, setOpen] = useState(false);
-    const [options, setOptions] = useState<LeadCategory[]>([]);
-    const [cursor, setCursor] = useState<string | null>(null);
-    const [loaded, setLoaded] = useState(false);
-    const [error, setError] = useState<string>();
-    const request = useHttp<Record<string, never>, LeadCategoryOptions>({});
-    const generation = useRef(0);
-    const loading = useRef(false);
+    const {
+        options,
+        cursor,
+        loaded,
+        error,
+        processing,
+        changeOpen: changeOptionsOpen,
+        loadMore,
+    } = useLeadCategoryOptions();
     const color = selected ? categoryColor(selected.color) : undefined;
-
-    async function load(next: string | null, version: number) {
-        if (loading.current) return;
-        loading.current = true;
-        setError(undefined);
-        try {
-            const result = await request.get(
-                categoryOptions.url({ query: next ? { cursor: next } : {} }),
-            );
-            if (version !== generation.current) return;
-            setOptions((current) =>
-                next
-                    ? [
-                          ...current,
-                          ...result.data.filter(
-                              (item) =>
-                                  !current.some(
-                                      (existing) => existing.id === item.id,
-                                  ),
-                          ),
-                      ]
-                    : result.data,
-            );
-            setCursor(result.nextCursor);
-            setLoaded(true);
-        } catch {
-            if (version === generation.current)
-                setError(
-                    'Não foi possível carregar as etapas. Tente novamente.',
-                );
-        } finally {
-            if (version === generation.current) loading.current = false;
-        }
-    }
 
     function changeOpen(next: boolean) {
         setOpen(next);
-        generation.current++;
-        request.cancel();
-        loading.current = false;
-        if (next) {
-            setOptions([]);
-            setLoaded(false);
-            setCursor(null);
-            void load(null, generation.current);
-        }
+        changeOptionsOpen(next);
     }
 
     return (
@@ -140,7 +99,7 @@ export function LeadCategorySelector({
                         Escolha a categoria que representa esta oportunidade.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-2" aria-busy={request.processing}>
+                <div className="grid gap-2" aria-busy={processing}>
                     {options.map((category) => (
                         <Button
                             key={category.id}
@@ -173,7 +132,7 @@ export function LeadCategorySelector({
                             )}
                         </Button>
                     ))}
-                    {request.processing && (
+                    {processing && (
                         <p
                             role="status"
                             className="flex items-center justify-center gap-2 py-5 text-sm text-muted-foreground"
@@ -212,10 +171,8 @@ export function LeadCategorySelector({
                         <Button
                             type="button"
                             variant="outline"
-                            disabled={request.processing}
-                            onClick={() =>
-                                void load(cursor, generation.current)
-                            }
+                            disabled={processing}
+                            onClick={() => void loadMore()}
                             className="min-h-11 rounded-xl border-white/10"
                         >
                             {error

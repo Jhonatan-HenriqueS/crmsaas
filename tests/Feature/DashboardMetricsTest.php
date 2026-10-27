@@ -43,7 +43,7 @@ test('each account sees only its own dashboard counts colors and category percen
         ->assertInertia(fn (Assert $page) => $page->component('dashboard')
             ->where('overview.totalLeads', 1)->where('newLeads.count', 1)->where('newLeads.period', 'week')
             ->where('overview.source', 'account')->where('overview.weeklyTotal', 1)
-            ->has('overview.categories', 1)->where('overview.categories.0.id', $first->id)
+            ->has('overview.categories', 2)->where('overview.categories.0.id', $first->id)
             ->where('overview.categories.0.color', '#112233')->where('overview.categories.0.count', 1)
             ->where('overview.categories.0.percentage', 100)
             ->missing('overview.categories.0.account_id')->missing('overview.recentRecords'));
@@ -188,7 +188,7 @@ test('the donut includes categories beyond pagination and paginated percentages 
     metricLead($own->account, '2026-10-16 12:00:00', $categories->last());
 
     $response = $this->actingAs($own->user)->get(route('dashboard'))
-        ->assertInertia(fn (Assert $page) => $page->has('overview.categories', 14)
+        ->assertInertia(fn (Assert $page) => $page->has('overview.categories', 15)
             ->where('overview.categories.0.id', $categories->last()->id)->where('overview.categories.0.count', 2)
             ->where('overview.categories.0.percentage', 66.7)->where('overview.categories.13.id', $categories->first()->id)
             ->where('overview.categories.13.percentage', 33.3));
@@ -222,7 +222,7 @@ test('a sold named category charged amount and next contact do not invent commer
         ->assertInertia(fn (Assert $page) => $page->where('overview.totalLeads', 1)
             ->where('overview.inProgressLeads', 0)->where('overview.soldLeads', 0)
             ->where('overview.categories.0.name', 'Vendido')->where('overview.categories.0.percentage', 100)
-            ->missing('overview.recentRecords')->missing('overview.soldPercentage'));
+            ->missing('overview.recentRecords')->where('overview.soldPercentage', 0));
 });
 
 test('creating a lead and revisiting pages updates persisted metrics', function () {
@@ -250,13 +250,13 @@ test('category deletion cascades and recalculates all metrics without touching a
     $foreignBefore = $foreign->fresh()->getRawOriginal();
     $this->actingAs($own->user)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('overview.totalLeads', 3));
 
-    $this->delete(route('categories.destroy', $remove))->assertRedirect(route('categories.index'));
+    $this->delete(route('categories.destroy', $remove), $this->categoryDeletionPayload($remove))->assertRedirect(route('categories.index'));
 
     $this->assertModelMissing($remove);
     $this->assertDatabaseCount('leads', 2);
     expect($foreign->fresh()->getRawOriginal())->toBe($foreignBefore);
     $this->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('overview.totalLeads', 1)
-        ->where('newLeads.count', 1)->where('overview.weeklyTotal', 1)->has('overview.categories', 1)
+        ->where('newLeads.count', 1)->where('overview.weeklyTotal', 1)->has('overview.categories', 2)
         ->where('overview.categories.0.id', $keep->id)->where('overview.categories.0.percentage', 100));
     $this->get(route('categories.index'))->assertInertia(fn (Assert $page) => $page->where('totalLeads', 1)
         ->where('categories.data.0.leads_count', 1)->where('categories.data.0.percentage', 100));
@@ -305,7 +305,7 @@ test('metrics query counts remain bounded as category and lead counts grow', fun
         DB::flushQueryLog();
         $this->get(route('categories.index'))->assertOk();
         $categoryQueries = collect(DB::getQueryLog())->filter(fn (array $query): bool => str_contains($query['query'], '"leads"') || str_contains($query['query'], 'from "lead_categories"'));
-        expect($categoryQueries)->toHaveCount(3);
+        expect($categoryQueries)->toHaveCount(4);
     } finally {
         DB::disableQueryLog();
         DB::flushQueryLog();

@@ -1,15 +1,9 @@
-import {
-    Banknote,
-    CalendarDays,
-    Check,
-    Clock3,
-    Pencil,
-    Trash2,
-    Wallet,
-} from 'lucide-react';
+import { Banknote, CalendarDays, Clock3, Wallet } from 'lucide-react';
 import { dashboardCardClass } from '@/components/dashboard/dashboard-data';
+import { CreateLeadDialog } from '@/components/leads/create-lead-dialog';
+import { DeleteLeadDialog } from '@/components/leads/delete-lead-dialog';
+import { CompleteLeadDialog } from '@/components/leads/complete-lead-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
     categoryColor,
@@ -18,11 +12,22 @@ import {
     formatLeadMoney,
 } from '@/lib/lead-format';
 import type { Lead } from '@/types/lead';
+import type { LeadCategory } from '@/types/lead-category';
 
 const detailClass =
     'min-w-0 rounded-2xl border border-white/[0.065] bg-white/[0.025] p-4';
 
-export function LeadCard({ lead, today }: { lead: Lead; today: string }) {
+export function LeadCard({
+    lead,
+    today,
+    page,
+    completionCategory,
+}: {
+    lead: Lead;
+    today: string;
+    page: number;
+    completionCategory: LeadCategory | null;
+}) {
     const color = categoryColor(lead.category.color);
     const overdue =
         lead.next_contact_date !== null && lead.next_contact_date < today;
@@ -53,38 +58,13 @@ export function LeadCard({ lead, today }: { lead: Lead; today: string }) {
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1.5">
                         <div className="flex gap-1.5">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                disabled
-                                aria-label={`Editar ${lead.name} — Em breve`}
-                                title="Em breve"
-                                className="size-9 rounded-xl border-white/10 bg-white/[0.02] text-muted-foreground"
-                            >
-                                <Pencil
-                                    className="size-3.5"
-                                    aria-hidden="true"
-                                />
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                disabled
-                                aria-label={`Excluir ${lead.name} — Em breve`}
-                                title="Em breve"
-                                className="size-9 rounded-xl border-white/10 bg-white/[0.02] text-muted-foreground"
-                            >
-                                <Trash2
-                                    className="size-3.5"
-                                    aria-hidden="true"
-                                />
-                            </Button>
+                            <CreateLeadDialog
+                                mode="edit"
+                                lead={lead}
+                                page={page}
+                            />
+                            <DeleteLeadDialog lead={lead} page={page} />
                         </div>
-                        <span className="text-[10px] text-muted-foreground">
-                            Em breve
-                        </span>
                     </div>
                 </div>
                 {lead.description && (
@@ -159,17 +139,11 @@ export function LeadCard({ lead, today }: { lead: Lead; today: string }) {
                         </div>
                     )}
                 </div>
-                <Button
-                    type="button"
-                    disabled
-                    aria-label="Concluir lead — Em breve"
-                    className="relative h-11 w-full rounded-xl bg-[var(--dashboard-green)] text-[#0d2820] disabled:opacity-75"
-                >
-                    <Check className="size-4" aria-hidden="true" />
-                    <span className="absolute right-4 text-[10px] font-medium">
-                        Em breve
-                    </span>
-                </Button>
+                <CompleteLeadDialog
+                    lead={lead}
+                    category={completionCategory}
+                    page={page}
+                />
             </CardContent>
         </Card>
     );

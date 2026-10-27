@@ -45,7 +45,7 @@ test('logout rejects replay of the previous real session and remember cookie', f
     $this->withUnencryptedCookies($cookies)->get(route('dashboard'))->assertOk();
     resetSessionClient();
 
-    $this->withUnencryptedCookies($cookies)->post(route('logout'))->assertRedirect(route('home'));
+    $this->withUnencryptedCookies($cookies)->post(route('logout'))->assertRedirect(route('login'));
 
     $this->assertDatabaseMissing('sessions', ['id' => $authenticatedSessionId]);
     resetSessionClient();

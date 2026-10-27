@@ -1,7 +1,8 @@
 import { Link } from '@inertiajs/react';
-import { LayoutDashboard, LogOut, Menu, Tags, Users } from 'lucide-react';
+import { LayoutDashboard, Menu, Tags, Users } from 'lucide-react';
 import { useState } from 'react';
 import { HingWordmark } from '@/components/hing-wordmark';
+import { LogoutDialog } from '@/components/logout-dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -106,19 +107,7 @@ function SidebarContent({
                             </div>
                         </div>
                         <div className="my-3.5 h-px bg-white/[0.06]" />
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            disabled
-                            className="h-10 w-full justify-start gap-2.5 px-2 text-xs text-muted-foreground disabled:opacity-50"
-                            aria-label="Sair da conta — indisponível nesta prévia"
-                        >
-                            <LogOut className="size-4" aria-hidden="true" />
-                            Sair da conta
-                            <span className="ml-auto text-[10px]">
-                                Em breve
-                            </span>
-                        </Button>
+                        <LogoutDialog />
                     </CardContent>
                 </Card>
             </div>

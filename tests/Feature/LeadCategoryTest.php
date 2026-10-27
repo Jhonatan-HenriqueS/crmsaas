@@ -18,7 +18,7 @@ test('guests cannot list or create categories', function () {
     $this->get(route('categories.index'))->assertRedirect(route('login'));
     $this->post(route('categories.store'), ['name' => 'Tecnologia', 'color' => '#7c65c1'])
         ->assertRedirect(route('login'));
-    $this->assertDatabaseEmpty('lead_categories');
+    expect(LeadCategory::query()->whereNull('system_key')->count())->toBe(0);
 });
 
 test('users without exactly one owned account cannot list or create categories', function (int $accounts) {
@@ -27,7 +27,7 @@ test('users without exactly one owned account cannot list or create categories',
 
     $this->actingAs($user)->get(route('categories.index'))->assertNotFound();
     $this->postJson(route('categories.store'), ['name' => 'Tecnologia', 'color' => '#7c65c1'])->assertNotFound();
-    $this->assertDatabaseEmpty('lead_categories');
+    expect(LeadCategory::query()->whereNull('system_key')->count())->toBe(0);
 })->with(['no membership' => 0, 'ambiguous accounts' => 2]);
 
 test('the current account owns the trimmed name and canonical color', function () {
@@ -44,8 +44,8 @@ test('the current account owns the trimmed name and canonical color', function (
     $this->assertDatabaseHas('lead_categories', [
         'account_id' => $membership->account_id, 'name' => 'Educação e Serviços', 'color' => '#7c65c1',
     ]);
-    $this->assertDatabaseCount('lead_categories', 1);
-    expect($membership->account->leadCategories()->sole()->account->is($membership->account))->toBeTrue();
+    expect(LeadCategory::query()->whereNull('system_key')->count())->toBe(1);
+    expect($membership->account->leadCategories()->whereNull('system_key')->sole()->account->is($membership->account))->toBeTrue();
 
     $this->get(route('categories.index'))
         ->assertInertia(fn (Assert $page) => $page->missing('status')
@@ -61,7 +61,7 @@ test('an agency and company each see only their own categories and may reuse a c
 
     $this->actingAs($agency->user)->post(route('categories.store'), ['name' => 'Agência privada', 'color' => '#7C65C1'])
         ->assertRedirect(route('categories.index'));
-    $second = $agency->account->leadCategories()->sole();
+    $second = $agency->account->leadCategories()->whereNull('system_key')->sole();
     $this->get(route('categories.index', ['account_id' => $company->account_id]))
         ->assertInertia(fn (Assert $page) => $page->component('categories/index')
             ->has('categories.data', 1)->where('categories.data.0.id', $second->id)
@@ -79,7 +79,7 @@ test('the same account cannot repeat a color with different letter case', functi
         ->assertUnprocessable()->assertJsonValidationErrors([
             'color' => 'Esta cor já está sendo utilizada por outra categoria. Escolha uma cor diferente.',
         ]);
-    $this->assertDatabaseCount('lead_categories', 1);
+    expect(LeadCategory::query()->whereNull('system_key')->count())->toBe(1);
 });
 
 test('names may repeat when their colors differ', function () {
@@ -88,7 +88,7 @@ test('names may repeat when their colors differ', function () {
 
     $this->actingAs($membership->user)->post(route('categories.store'), ['name' => 'Serviços', 'color' => '#112233'])
         ->assertRedirect(route('categories.index'));
-    $this->assertDatabaseCount('lead_categories', 2);
+    expect(LeadCategory::query()->whereNull('system_key')->count())->toBe(2);
 });
 
 test('unexpected payload fields cannot assign ownership or other attributes', function (string $field) {
@@ -98,7 +98,7 @@ test('unexpected payload fields cannot assign ownership or other attributes', fu
     $this->actingAs($membership->user)->postJson(route('categories.store'), [
         'name' => 'Manipulada', 'color' => '#112233', $field => $other->id,
     ])->assertUnprocessable()->assertJsonValidationErrors(['form' => 'Envie apenas o nome e a cor da categoria.']);
-    $this->assertDatabaseEmpty('lead_categories');
+    expect(LeadCategory::query()->whereNull('system_key')->count())->toBe(0);
 })->with(['account_id', 'user_id', 'id', 'lead_count', 'class']);
 
 test('mass assignment cannot redirect relationship creation to another account', function () {
@@ -108,7 +108,7 @@ test('mass assignment cannot redirect relationship creation to another account',
     $category = $own->leadCategories()->create(['name' => 'Segura', 'color' => '#112233', 'account_id' => $other->id]);
 
     expect($category->account_id)->toBe($own->id);
-    $this->assertDatabaseMissing('lead_categories', ['account_id' => $other->id]);
+    $this->assertDatabaseMissing('lead_categories', ['account_id' => $other->id, 'system_key' => null]);
 });
 
 test('revoked membership denies subsequent category requests', function () {
@@ -118,7 +118,7 @@ test('revoked membership denies subsequent category requests', function () {
 
     $this->postJson(route('categories.store'), ['name' => 'Revogada', 'color' => '#112233'])->assertNotFound();
     $this->get(route('categories.index'))->assertNotFound();
-    $this->assertDatabaseEmpty('lead_categories');
+    expect(LeadCategory::query()->whereNull('system_key')->count())->toBe(0);
 });
 
 test('category endpoints enforce explicit account authorization', function () {
@@ -127,7 +127,7 @@ test('category endpoints enforce explicit account authorization', function () {
 
     $this->actingAs($membership->user)->get(route('categories.index'))->assertNotFound();
     $this->postJson(route('categories.store'), ['name' => 'Negada', 'color' => '#112233'])->assertNotFound();
-    $this->assertDatabaseEmpty('lead_categories');
+    expect(LeadCategory::query()->whereNull('system_key')->count())->toBe(0);
 });
 
 test('missing category fields return Portuguese errors without inserting records', function () {
@@ -137,7 +137,7 @@ test('missing category fields return Portuguese errors without inserting records
         ->assertUnprocessable()->assertJsonValidationErrors([
             'name' => 'Informe o nome da categoria.', 'color' => 'Escolha uma cor para a categoria.',
         ])->assertInertiaFlashMissing('toast');
-    $this->assertDatabaseEmpty('lead_categories');
+    expect(LeadCategory::query()->whereNull('system_key')->count())->toBe(0);
 });
 
 test('malformed category fields are rejected without internal errors', function (string $field, mixed $value, string $message) {
@@ -146,7 +146,7 @@ test('malformed category fields are rejected without internal errors', function 
     $this->actingAs($membership->user)->postJson(route('categories.store'), [
         ...['name' => 'Válida', 'color' => '#112233'], $field => $value,
     ])->assertUnprocessable()->assertJsonValidationErrors([$field => $message]);
-    $this->assertDatabaseEmpty('lead_categories');
+    expect(LeadCategory::query()->whereNull('system_key')->count())->toBe(0);
 })->with([
     'name array' => ['name', ['name'], 'Informe um nome válido para a categoria.'],
     'name object' => ['name', (object) ['name' => 'x'], 'Informe um nome válido para a categoria.'],
@@ -179,12 +179,12 @@ test('category list is paginated in stable order and supplies a free initial col
             ->where('categories.currentPage', 2)->where('categories.hasMorePages', false));
 });
 
-test('the category empty state starts without seeded records', function () {
+test('the ordinary category empty state coexists with the permanent category', function () {
     $membership = Membership::factory()->create();
 
     $this->actingAs($membership->user)->get(route('categories.index'))
-        ->assertInertia(fn (Assert $page) => $page->has('categories.data', 0)->where('initialColor', '#6d54b5'));
-    $this->assertDatabaseEmpty('lead_categories');
+        ->assertInertia(fn (Assert $page) => $page->has('categories.data', 0)->has('programmedCategories', 1)->where('programmedCategories.0.is_sale_completed', true)->where('initialColor', '#6d54b5'));
+    expect(LeadCategory::query()->whereNull('system_key')->count())->toBe(0);
 });
 
 test('the category database constraints reject duplicate colors and orphan ownership', function () {
@@ -193,7 +193,7 @@ test('the category database constraints reject duplicate colors and orphan owner
     expect(fn () => LeadCategory::factory()->for($category->account)->create(['color' => '#112233']))
         ->toThrow(UniqueConstraintViolationException::class);
     expect(fn () => LeadCategory::factory()->create(['account_id' => 999999]))->toThrow(QueryException::class);
-    $this->assertDatabaseCount('lead_categories', 1);
+    expect(LeadCategory::query()->whereNull('system_key')->count())->toBe(1);
 });
 
 test('unrelated unique constraint failures are reported instead of becoming color errors', function () {
@@ -206,7 +206,7 @@ test('unrelated unique constraint failures are reported instead of becoming colo
         ->assertServerError();
 
     Exceptions::assertReported(UniqueConstraintViolationException::class);
-    $this->assertDatabaseCount('lead_categories', 1);
+    expect(LeadCategory::query()->whereNull('system_key')->count())->toBe(1);
 });
 
 test('category creation requires a matching csrf token', function (?string $token, int $status) {
@@ -224,7 +224,7 @@ test('category creation requires a matching csrf token', function (?string $toke
             '_token' => $token, 'name' => 'Protegida', 'color' => '#112233',
         ])->assertStatus($status);
 
-    $this->assertDatabaseCount('lead_categories', $status === 302 ? 1 : 0);
+    expect(LeadCategory::query()->whereNull('system_key')->count())->toBe($status === 302 ? 1 : 0);
 })->with(['missing' => [null, 419], 'foreign session' => ['other-token', 419], 'valid' => ['category-browser-token', 302]]);
 
 test('category mutation routes remain unavailable', function (string $method) {

@@ -10,21 +10,28 @@ import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { index } from '@/routes/categories';
-import type { LeadCategoryPage } from '@/types/lead-category';
+import type {
+    LeadCategoryMetric,
+    LeadCategoryPage,
+} from '@/types/lead-category';
 
 type Props = {
     categories: LeadCategoryPage;
     initialColor: string;
     totalLeads: number;
+    programmedCategories: LeadCategoryMetric[];
 };
 
 export default function Categories({
     categories,
     initialColor,
     totalLeads,
+    programmedCategories,
 }: Props) {
     const { auth } = usePage().props;
-    const visibleColors = categories.data.map((category) => category.color);
+    const visibleColors = [...programmedCategories, ...categories.data].map(
+        (category) => category.color,
+    );
     return (
         <div
             lang="pt-BR"
@@ -41,9 +48,9 @@ export default function Categories({
             <main
                 id="categories-content"
                 tabIndex={-1}
-                className="min-w-0 px-4 py-7 outline-none sm:px-6 sm:py-8 lg:ml-[248px] lg:px-8 lg:py-10 2xl:ml-[264px] 2xl:px-10"
+                className="min-w-0 px-3 py-5 outline-none sm:px-6 sm:py-8 lg:ml-[248px] lg:px-8 lg:py-10 2xl:ml-[264px] 2xl:px-10"
             >
-                <div className="mx-auto flex w-full max-w-[1480px] min-w-0 flex-col gap-6 sm:gap-7">
+                <div className="mx-auto flex w-full max-w-[1480px] min-w-0 flex-col gap-6 rounded-[2rem] border border-white/[0.055] bg-card/15 p-4 sm:gap-7 sm:p-7 xl:p-8">
                     <header className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
                         <div>
                             <p className="mb-2 text-[10px] font-medium tracking-[0.17em] text-muted-foreground uppercase">
@@ -63,115 +70,143 @@ export default function Categories({
                             visibleColors={visibleColors}
                         />
                     </header>
-                    {categories.data.length === 0 ? (
-                        <Card className={dashboardCardClass}>
-                            <CardContent className="flex flex-col items-center px-5 py-16 text-center sm:py-24">
-                                <span className="mb-5 flex size-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-[#bca6ec]">
-                                    <Tags
-                                        className="size-6"
-                                        aria-hidden="true"
-                                    />
-                                </span>
-                                <h2 className="text-lg font-semibold tracking-tight">
-                                    Suas categorias começam aqui
-                                </h2>
-                                <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
-                                    Nenhuma categoria foi criada. Use o botão
-                                    Nova categoria para organizar suas
-                                    oportunidades do seu jeito.
-                                </p>
-                            </CardContent>
-                        </Card>
-                    ) : (
-                        <section
-                            aria-labelledby="registered-categories-title"
-                            className="space-y-5"
-                        >
-                            <div className="flex flex-col gap-2 rounded-2xl border border-white/[0.055] bg-card/60 px-5 py-5 sm:px-6">
-                                <h2
-                                    id="registered-categories-title"
-                                    className="text-lg font-semibold tracking-tight"
-                                >
-                                    Categorias cadastradas
-                                </h2>
-                                <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
-                                    Distribuição das categorias em relação aos{' '}
-                                    {formatCount(totalLeads)} leads da sua
-                                    conta.
-                                </p>
-                            </div>
-                            <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
-                                {categories.data.map((category) => (
-                                    <CategoryCard
-                                        key={category.id}
-                                        category={category}
-                                        visibleColors={visibleColors}
-                                    />
-                                ))}
-                            </div>
-                            {(categories.currentPage > 1 ||
-                                categories.hasMorePages) && (
-                                <nav
-                                    aria-label="Paginação de categorias"
-                                    className="flex flex-wrap items-center justify-between gap-3 pt-2"
-                                >
-                                    {categories.currentPage > 1 ? (
-                                        <Button
-                                            asChild
-                                            variant="outline"
-                                            className="rounded-xl border-white/10 bg-card"
-                                        >
-                                            <Link
-                                                href={index({
-                                                    query: {
-                                                        page:
-                                                            categories.currentPage -
-                                                            1,
-                                                    },
-                                                })}
-                                            >
-                                                <ArrowLeft
-                                                    className="size-4"
-                                                    aria-hidden="true"
-                                                />{' '}
-                                                Anterior
-                                            </Link>
-                                        </Button>
-                                    ) : (
-                                        <span />
-                                    )}
-                                    <span className="text-xs text-muted-foreground">
-                                        Página {categories.currentPage}
+                    <section
+                        aria-labelledby="programmed-categories-title"
+                        className="space-y-5"
+                    >
+                        <div className="flex min-w-0 flex-col gap-2">
+                            <h2
+                                id="programmed-categories-title"
+                                className="text-lg font-semibold tracking-tight"
+                            >
+                                Categorias já programadas
+                            </h2>
+                            <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
+                                Categorias essenciais para organizar e
+                                acompanhar as etapas do seu CRM.
+                            </p>
+                        </div>
+                        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
+                            {programmedCategories.map((category) => (
+                                <CategoryCard
+                                    key={category.id}
+                                    category={category}
+                                    visibleColors={visibleColors}
+                                />
+                            ))}
+                        </div>
+                    </section>
+                    <section
+                        aria-labelledby="registered-categories-title"
+                        className="space-y-5"
+                    >
+                        <div className="flex min-w-0 flex-col gap-2">
+                            <h2
+                                id="registered-categories-title"
+                                className="text-lg font-semibold tracking-tight"
+                            >
+                                Categorias cadastradas
+                            </h2>
+                            <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
+                                Distribuição das categorias em relação aos{' '}
+                                {formatCount(totalLeads)} leads da sua conta.
+                            </p>
+                        </div>
+                        {categories.data.length === 0 ? (
+                            <Card className={dashboardCardClass}>
+                                <CardContent className="flex flex-col items-center px-5 py-16 text-center sm:py-24">
+                                    <span className="mb-5 flex size-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-[#bca6ec]">
+                                        <Tags
+                                            className="size-6"
+                                            aria-hidden="true"
+                                        />
                                     </span>
-                                    {categories.hasMorePages ? (
-                                        <Button
-                                            asChild
-                                            variant="outline"
-                                            className="rounded-xl border-white/10 bg-card"
-                                        >
-                                            <Link
-                                                href={index({
-                                                    query: {
-                                                        page:
-                                                            categories.currentPage +
-                                                            1,
-                                                    },
-                                                })}
+                                    <h2 className="text-lg font-semibold tracking-tight">
+                                        Suas categorias começam aqui
+                                    </h2>
+                                    <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
+                                        Nenhuma categoria personalizada foi
+                                        criada. Use o botão Nova categoria para
+                                        organizar suas oportunidades do seu
+                                        jeito.
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <>
+                                <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">
+                                    {categories.data.map((category) => (
+                                        <CategoryCard
+                                            key={category.id}
+                                            category={category}
+                                            visibleColors={visibleColors}
+                                        />
+                                    ))}
+                                </div>
+                                {(categories.currentPage > 1 ||
+                                    categories.hasMorePages) && (
+                                    <nav
+                                        aria-label="Paginação de categorias"
+                                        className="flex flex-wrap items-center justify-between gap-3 pt-2"
+                                    >
+                                        {categories.currentPage > 1 ? (
+                                            <Button
+                                                asChild
+                                                variant="outline"
+                                                className="rounded-xl border-white/10 bg-card"
                                             >
-                                                Próxima{' '}
-                                                <ArrowRight
-                                                    className="size-4"
-                                                    aria-hidden="true"
-                                                />
-                                            </Link>
-                                        </Button>
-                                    ) : (
-                                        <span />
-                                    )}
-                                </nav>
-                            )}
-                        </section>
-                    )}
+                                                <Link
+                                                    href={index({
+                                                        query: {
+                                                            page:
+                                                                categories.currentPage -
+                                                                1,
+                                                        },
+                                                    })}
+                                                >
+                                                    <ArrowLeft
+                                                        className="size-4"
+                                                        aria-hidden="true"
+                                                    />{' '}
+                                                    Anterior
+                                                </Link>
+                                            </Button>
+                                        ) : (
+                                            <span />
+                                        )}
+                                        <span className="text-xs text-muted-foreground">
+                                            Página {categories.currentPage}
+                                        </span>
+                                        {categories.hasMorePages ? (
+                                            <Button
+                                                asChild
+                                                variant="outline"
+                                                className="rounded-xl border-white/10 bg-card"
+                                            >
+                                                <Link
+                                                    href={index({
+                                                        query: {
+                                                            page:
+                                                                categories.currentPage +
+                                                                1,
+                                                        },
+                                                    })}
+                                                >
+                                                    Próxima{' '}
+                                                    <ArrowRight
+                                                        className="size-4"
+                                                        aria-hidden="true"
+                                                    />
+                                                </Link>
+                                            </Button>
+                                        ) : (
+                                            <span />
+                                        )}
+                                    </nav>
+                                )}
+                            </>
+                        )}
+                    </section>
                 </div>
             </main>
         </div>

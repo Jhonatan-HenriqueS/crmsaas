@@ -1,4 +1,5 @@
-import { ArrowUpRight, CheckCheck } from 'lucide-react';
+import { ArrowUpRight, CheckCheck, ChevronDown, ChevronUp } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import {
     Bar,
     BarChart,
@@ -10,6 +11,7 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import {
@@ -141,6 +143,58 @@ export function DashboardBarChart({ data }: { data: DashboardData }) {
 }
 
 export function DashboardCategoryChart({ data }: { data: DashboardData }) {
+    const categoryListRef = useRef<HTMLUListElement>(null);
+    const [hasMoreCategoriesAbove, setHasMoreCategoriesAbove] = useState(false);
+    const [hasMoreCategoriesBelow, setHasMoreCategoriesBelow] = useState(false);
+
+    useEffect(() => {
+        const list = categoryListRef.current;
+
+        if (!list) {
+            return;
+        }
+
+        const updateScrollIndicator = () => {
+            setHasMoreCategoriesAbove(list.scrollTop > 1);
+            setHasMoreCategoriesBelow(
+                list.scrollHeight - list.clientHeight - list.scrollTop > 1,
+            );
+        };
+        const frame = requestAnimationFrame(updateScrollIndicator);
+        const observer = new ResizeObserver(updateScrollIndicator);
+
+        observer.observe(list);
+        for (const category of list.children) {
+            observer.observe(category);
+        }
+        list.addEventListener('scroll', updateScrollIndicator, {
+            passive: true,
+        });
+
+        return () => {
+            cancelAnimationFrame(frame);
+            observer.disconnect();
+            list.removeEventListener('scroll', updateScrollIndicator);
+        };
+    }, [data.categories]);
+
+    const scrollToCategory = (position: 'first' | 'last') => {
+        const list = categoryListRef.current;
+
+        if (!list) {
+            return;
+        }
+
+        list.focus({ preventScroll: true });
+        list.scrollTo({
+            top: position === 'first' ? 0 : list.scrollHeight,
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)')
+                .matches
+                ? 'instant'
+                : 'smooth',
+        });
+    };
+
     const chartData = data.categories
         .filter((category) => category.count > 0)
         .map((category) => ({
@@ -242,8 +296,23 @@ export function DashboardCategoryChart({ data }: { data: DashboardData }) {
                     <span>Categoria</span>
                     <span>Quantidade / %</span>
                 </div>
+                <div className="flex h-8 shrink-0 items-center justify-center">
+                    {hasMoreCategoriesAbove && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-10 text-muted-foreground hover:text-foreground"
+                            aria-label="Ir para a primeira categoria"
+                            onClick={() => scrollToCategory('first')}
+                        >
+                            <ChevronUp className="size-4" aria-hidden="true" />
+                        </Button>
+                    )}
+                </div>
                 <ul
-                    className="max-h-40 space-y-4 overflow-y-auto pr-1"
+                    ref={categoryListRef}
+                    className="max-h-40 [scrollbar-width:none] space-y-4 overflow-y-auto pr-1 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
                     tabIndex={0}
                     aria-label="Quantidades e percentuais por categoria"
                 >
@@ -274,6 +343,23 @@ export function DashboardCategoryChart({ data }: { data: DashboardData }) {
                         </li>
                     ))}
                 </ul>
+                <div className="flex h-8 shrink-0 items-center justify-center">
+                    {hasMoreCategoriesBelow && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-10 text-muted-foreground hover:text-foreground"
+                            aria-label="Ir para a última categoria"
+                            onClick={() => scrollToCategory('last')}
+                        >
+                            <ChevronDown
+                                className="size-4"
+                                aria-hidden="true"
+                            />
+                        </Button>
+                    )}
+                </div>
                 <div className="dashboard-sales-highlight mt-7 rounded-xl p-4 xl:mt-auto xl:translate-y-1">
                     <div className="mb-3 flex items-center gap-2 text-xs font-medium text-[var(--sales-accent)]">
                         <CheckCheck
@@ -287,11 +373,13 @@ export function DashboardCategoryChart({ data }: { data: DashboardData }) {
                             {formatCount(data.soldLeads)}
                         </span>
                         <span className="text-xs font-medium text-[var(--sales-accent)]">
-                            Disponível em breve
+                            {formatPercentage(data.soldPercentage)} do total
+                            geral
                         </span>
                     </div>
                     <p className="mt-2 text-[11px] leading-relaxed text-[var(--sales-muted)]">
-                        Os dados de venda ainda não estão disponíveis.
+                        Vendas concluídas, entregues e pagas, conforme sua
+                        confirmação.
                     </p>
                 </div>
             </CardContent>

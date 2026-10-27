@@ -26,4 +26,16 @@ class LeadPolicy
     {
         return Gate::forUser($user)->inspect('update', $account);
     }
+
+    public function update(User $user, Lead $lead, Account $account): Response
+    {
+        return $lead->account_id === $account->id
+            ? Gate::forUser($user)->inspect('update', $account)
+            : Response::denyAsNotFound();
+    }
+
+    public function delete(User $user, Lead $lead, Account $account): Response
+    {
+        return $this->update($user, $lead, $account);
+    }
 }

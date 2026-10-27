@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use App\Models\LeadCategory;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\Auth;
@@ -57,6 +58,24 @@ abstract class TestCase extends BaseTestCase
         }
 
         return $cookies;
+    }
+
+    /** @return array{confirmation: string} */
+    public function categoryDeletionPayload(LeadCategory $category): array
+    {
+        $page = 1;
+        do {
+            $response = $this->get(route('categories.index', ['page' => $page]))->assertOk();
+            $categories = $response->inertiaProps('categories');
+            foreach ($categories['data'] as $item) {
+                if ($item['id'] === $category->id) {
+                    return ['confirmation' => $item['deletion_confirmation']];
+                }
+            }
+            $page++;
+        } while ($categories['hasMorePages']);
+
+        $this->fail('The category is absent from the authenticated account listing.');
     }
 
     protected function skipUnlessFortifyHas(string $feature, ?string $message = null): void

@@ -7,6 +7,7 @@ use App\Actions\Fortify\ResetUserPassword;
 use App\Http\Middleware\EnsureSafeAuthenticationRedirect;
 use App\Http\Middleware\ValidateAuthenticationInput;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Responses\LogoutResponse;
 use App\Http\Responses\PasswordResetLinkResponse;
 use App\Models\Account;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -35,6 +36,7 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->bind(\Laravel\Fortify\Contracts\LogoutResponse::class, LogoutResponse::class);
         $this->app->bind(FortifyLoginRequest::class, LoginRequest::class);
         $this->app->bind(SuccessfulPasswordResetLinkRequestResponse::class, PasswordResetLinkResponse::class);
         $this->app->bind(FailedPasswordResetLinkRequestResponse::class, PasswordResetLinkResponse::class);

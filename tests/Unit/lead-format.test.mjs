@@ -5,9 +5,22 @@ import {
     contactDeadline,
     formatLeadDate,
     formatLeadMoney,
+    formatLeadMoneyInput,
     localCivilDate,
     parseLeadMoney,
 } from '../../resources/js/lib/lead-format.ts';
+
+for (const [stored, input] of [
+    [null, ''],
+    ['0.00', '0,00'],
+    ['1500.50', '1.500,50'],
+    ['9999999999.99', '9.999.999.999,99'],
+]) {
+    test(`editing money preserves the exact decimal value: ${stored}`, () => {
+        assert.equal(formatLeadMoneyInput(stored), input);
+        assert.equal(parseLeadMoney(input), stored);
+    });
+}
 
 for (const [value, expected] of [
     [null, 'Não agendado'],

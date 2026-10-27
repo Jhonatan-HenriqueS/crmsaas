@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import { LoaderCircle, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import InputError from '@/components/input-error';
+import { formatCount } from '@/components/dashboard/dashboard-data';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -13,15 +14,20 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { destroy } from '@/routes/categories';
-import type { LeadCategory } from '@/types/lead-category';
+import type { LeadCategoryMetric } from '@/types/lead-category';
 
-export function DeleteCategoryDialog({ category }: { category: LeadCategory }) {
+export function DeleteCategoryDialog({
+    category,
+}: {
+    category: LeadCategoryMetric;
+}) {
     const [open, setOpen] = useState(false);
     const [requestError, setRequestError] = useState<string>();
     const cancelButton = useRef<HTMLButtonElement>(null);
     const submitting = useRef(false);
-    const form = useForm<Record<string, never>>({});
+    const form = useForm({ confirmation: '' });
     const error =
+        form.errors.confirmation ||
         (form.errors as Record<string, string | undefined>).form ||
         requestError;
 
@@ -38,6 +44,9 @@ export function DeleteCategoryDialog({ category }: { category: LeadCategory }) {
         if (submitting.current || form.processing) return;
         submitting.current = true;
         setRequestError(undefined);
+        form.transform(() => ({
+            confirmation: category.deletion_confirmation ?? '',
+        }));
         form.submit(destroy(category.id), {
             preserveScroll: true,
             onSuccess: () => {
@@ -101,12 +110,16 @@ export function DeleteCategoryDialog({ category }: { category: LeadCategory }) {
                         Deseja excluir &quot;{category.name}&quot;?
                     </DialogTitle>
                     <DialogDescription className="text-sm leading-relaxed">
-                        Esta ação excluirá permanentemente a categoria e os
-                        registros vinculados a ela no CRM. Não será possível
-                        desfazer.
+                        Esta ação excluirá permanentemente a categoria e{' '}
+                        {formatCount(category.leads_count)}{' '}
+                        {category.leads_count === 1
+                            ? 'lead vinculado'
+                            : 'leads vinculados'}
+                        . Não será possível desfazer.
                         <span className="mt-3 block text-xs">
-                            No momento, não há registros vinculados a
-                            categorias.
+                            A quantidade é conferida novamente ao confirmar. Se
+                            houver alteração, revise os dados antes de tentar
+                            novamente.
                         </span>
                     </DialogDescription>
                 </DialogHeader>

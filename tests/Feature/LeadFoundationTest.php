@@ -37,15 +37,17 @@ function leadFoundationPayload(LeadCategory $category): array
     ];
 }
 
-test('lead interface publishes only list creation and category selection without mutation permissions', function () {
+test('lead interface publishes authorized mutations without enabling completion', function () {
     $membership = Membership::factory()->create();
     $lead = Lead::factory()->for($membership->account)->create();
 
     expect(Route::has('leads.index'))->toBeTrue();
     expect(Route::has('leads.store'))->toBeTrue();
     $this->actingAs($membership->user)->get('/leads')->assertOk();
-    expect(Gate::forUser($membership->user)->allows('update', $lead))->toBeFalse();
-    expect(Gate::forUser($membership->user)->allows('delete', $lead))->toBeFalse();
+    expect(Route::has('leads.update'))->toBeTrue();
+    expect(Route::has('leads.destroy'))->toBeTrue();
+    expect(Gate::forUser($membership->user)->allows('update', [$lead, $membership->account]))->toBeTrue();
+    expect(Gate::forUser($membership->user)->allows('delete', [$lead, $membership->account]))->toBeTrue();
 });
 
 test('guests receive 401 without reading or creating leads', function () {
@@ -338,7 +340,7 @@ test('lead listing uses database count and one eager category query without N pl
         $queries = collect(DB::getQueryLog());
         $leadQueries = $queries->filter(fn (array $query): bool => str_contains($query['query'], 'from "leads"'));
         expect($leadQueries)->toHaveCount(2);
-        expect($queries->filter(fn (array $query): bool => str_contains($query['query'], 'from "lead_categories"')))->toHaveCount(1);
+        expect($queries->filter(fn (array $query): bool => str_contains($query['query'], 'from "lead_categories"')))->toHaveCount(2);
         expect($leadQueries->filter(fn (array $query): bool => str_contains($query['query'], 'select count(*)')))->toHaveCount(1);
         foreach ($leadQueries as $query) {
             expect($query['query'])->toContain('"leads"."account_id" = ?');

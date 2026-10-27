@@ -11,9 +11,9 @@ final class FlashCrudSuccess
         self::send($resource, 'created', $feminine ? 'criada' : 'criado');
     }
 
-    public static function updated(string $resource, bool $feminine = false): void
+    public static function updated(string $resource, bool $feminine = false, ?string $verb = null): void
     {
-        self::send($resource, 'updated', $feminine ? 'editada' : 'editado');
+        self::send($resource, 'updated', $verb ?? ($feminine ? 'editada' : 'editado'));
     }
 
     public static function deleted(string $resource, bool $feminine = false): void

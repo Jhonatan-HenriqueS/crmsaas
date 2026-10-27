@@ -18,7 +18,7 @@ class MutateLeadCategoryRequest extends StoreLeadCategoryRequest
         if (! parent::authorize()) {
             return false;
         }
-        $this->category();
+        abort_if($this->isMethod('DELETE') && $this->category()->is_sale_completed, 403, 'A categoria de finalização não pode ser excluída.');
 
         return true;
     }
@@ -35,7 +35,20 @@ class MutateLeadCategoryRequest extends StoreLeadCategoryRequest
     /** @return array<string, ValidationRule|array<mixed>|string> */
     public function rules(): array
     {
-        return $this->isMethod('DELETE') ? [] : parent::rules();
+        return $this->isMethod('DELETE')
+            ? ['confirmation' => ['bail', 'required', 'string', 'max:4096']]
+            : parent::rules();
+    }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            ...parent::messages(),
+            'confirmation.required' => 'Revise a categoria e a quantidade de leads antes de confirmar a exclusão.',
+            'confirmation.string' => 'A confirmação da exclusão é inválida.',
+            'confirmation.max' => 'A confirmação da exclusão é inválida.',
+        ];
     }
 
     protected function colorUniqueRule(): Unique
@@ -51,7 +64,7 @@ class MutateLeadCategoryRequest extends StoreLeadCategoryRequest
         }
 
         return [function (Validator $validator): void {
-            if ($this->except('_token') !== []) {
+            if (array_diff(array_keys($this->except('_token')), ['confirmation']) !== []) {
                 $validator->errors()->add('form', 'A exclusão não aceita campos adicionais.');
             }
         }];

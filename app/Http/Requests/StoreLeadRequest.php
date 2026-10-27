@@ -57,6 +57,9 @@ class StoreLeadRequest extends FormRequest
             'next_contact_date' => ['bail', 'nullable', 'string', 'date_format:Y-m-d'],
             'potential_amount' => ['bail', 'nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
             'charged_amount' => ['bail', 'nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
+            'confirm_completion' => ['sometimes', 'boolean'],
+            'confirm_reopening' => ['sometimes', 'boolean'],
+            'category' => ['bail', 'sometimes', 'required', 'integer', 'min:1', 'max:'.PHP_INT_MAX],
         ];
     }
 
@@ -81,6 +84,11 @@ class StoreLeadRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'category.*' => 'Selecione uma categoria válida para filtrar os leads.',
+            'confirm_completion.required' => 'Confirme que a venda foi concluída, entregue e paga.',
+            'confirm_completion.accepted' => 'Confirme que a venda foi concluída, entregue e paga.',
+            'confirm_completion.boolean' => 'A confirmação da venda é inválida.',
+            'confirm_reopening.boolean' => 'A confirmação da reabertura é inválida.',
             'name.required' => 'Informe o nome do lead.',
             'name.string' => 'Informe um nome válido para o lead.',
             'name.max' => 'O nome do lead deve ter no máximo 120 caracteres.',

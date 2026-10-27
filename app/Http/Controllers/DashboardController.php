@@ -43,7 +43,7 @@ class DashboardController extends Controller
 
     /**
      * @return array{
-     *     source: string, totalLeads: int, inProgressLeads: int, soldLeads: int,
+     *     source: string, totalLeads: int, inProgressLeads: int, soldLeads: int, soldPercentage: float,
      *     reportingTimezone: string, weeklyTotal: int,
      *     categories: list<array{id: int, name: string, color: string, count: int, percentage: float}>,
      *     weeklyIntake: list<array{day: string, date: string, count: int}>
@@ -52,9 +52,11 @@ class DashboardController extends Controller
     private function overview(Account $account, CarbonImmutable $now): array
     {
         $total = $account->leads()->count();
-        $categories = $account->leadCategories()->select(['id', 'name', 'color'])
+        $records = $account->leadCategories()->select(['id', 'name', 'color', 'system_key'])
             ->withCount(['leads' => fn (Builder $query) => $query->where('account_id', $account->id)])
-            ->orderByDesc('id')->get()
+            ->orderByDesc('id')->get();
+        $sold = (int) ($records->firstWhere('system_key', LeadCategory::SALE_COMPLETED)?->getAttribute('leads_count') ?? 0);
+        $categories = $records
             ->map(static function (LeadCategory $category) use ($total): array {
                 $count = (int) $category->getAttribute('leads_count');
 
@@ -72,7 +74,8 @@ class DashboardController extends Controller
             'source' => 'account',
             'totalLeads' => $total,
             'inProgressLeads' => 0,
-            'soldLeads' => 0,
+            'soldLeads' => $sold,
+            'soldPercentage' => $total > 0 ? round($sold / $total * 100, 1) : 0.0,
             'reportingTimezone' => $now->getTimezone()->getName(),
             'weeklyTotal' => $weekly['total'],
             'categories' => array_values($categories),

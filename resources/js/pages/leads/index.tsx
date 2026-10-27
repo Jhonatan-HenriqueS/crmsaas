@@ -1,11 +1,5 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import {
-    ArrowLeft,
-    ArrowRight,
-    ChevronDown,
-    SlidersHorizontal,
-    Users,
-} from 'lucide-react';
+import { ArrowLeft, ArrowRight, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import {
     dashboardCardClass,
@@ -14,13 +8,23 @@ import {
 import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar';
 import { CreateLeadDialog } from '@/components/leads/create-lead-dialog';
 import { LeadCard } from '@/components/leads/lead-card';
+import { LeadCategoryFilter } from '@/components/leads/lead-category-filter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { localCivilDate } from '@/lib/lead-format';
 import { index } from '@/routes/leads';
 import type { LeadPage } from '@/types/lead';
+import type { LeadCategory } from '@/types/lead-category';
 
-export default function Leads({ leads }: { leads: LeadPage }) {
+export default function Leads({
+    leads,
+    completionCategory,
+    selectedCategory,
+}: {
+    leads: LeadPage;
+    selectedCategory: LeadCategory | null;
+    completionCategory: LeadCategory | null;
+}) {
     const { auth } = usePage().props;
     const [today, setToday] = useState(() => localCivilDate());
     useEffect(() => {
@@ -91,30 +95,17 @@ export default function Leads({ leads }: { leads: LeadPage }) {
                                 />
                                 <span>
                                     {formatCount(leads.total)}{' '}
-                                    {leads.total === 1
-                                        ? 'lead cadastrado'
-                                        : 'leads cadastrados'}
+                                    {selectedCategory
+                                        ? leads.total === 1
+                                            ? 'lead nesta categoria'
+                                            : 'leads nesta categoria'
+                                        : leads.total === 1
+                                          ? 'lead cadastrado'
+                                          : 'leads cadastrados'}
                                 </span>
                             </div>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                disabled
-                                aria-label="Filtrar leads — Em breve"
-                                title="Em breve"
-                                className="min-h-11 gap-2 rounded-xl border-white/10 bg-card px-4 disabled:opacity-60"
-                            >
-                                <SlidersHorizontal
-                                    className="size-3.5"
-                                    aria-hidden="true"
-                                />
-                                Todos
-                                <ChevronDown
-                                    className="size-4"
-                                    aria-hidden="true"
-                                />
-                            </Button>
-                            <CreateLeadDialog />
+                            <LeadCategoryFilter selected={selectedCategory} />
+                            <CreateLeadDialog mode="create" />
                         </div>
                     </header>
                     {leads.data.length === 0 ? (
@@ -127,11 +118,14 @@ export default function Leads({ leads }: { leads: LeadPage }) {
                                     />
                                 </span>
                                 <h2 className="text-lg font-semibold tracking-tight">
-                                    Nenhum lead cadastrado
+                                    {selectedCategory
+                                        ? 'Nenhum lead nesta categoria'
+                                        : 'Nenhum lead cadastrado'}
                                 </h2>
                                 <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
-                                    Comece cadastrando sua primeira oportunidade
-                                    para acompanhar os próximos contatos.
+                                    {selectedCategory
+                                        ? 'Não encontramos leads vinculados à categoria selecionada.'
+                                        : 'Comece criando sua primeira oportunidade.'}
                                 </p>
                             </CardContent>
                         </Card>
@@ -142,7 +136,12 @@ export default function Leads({ leads }: { leads: LeadPage }) {
                                     key={lead.id}
                                     className="@container flex min-w-0 [&>div]:w-full"
                                 >
-                                    <LeadCard lead={lead} today={today} />
+                                    <LeadCard
+                                        lead={lead}
+                                        today={today}
+                                        page={leads.currentPage}
+                                        completionCategory={completionCategory}
+                                    />
                                 </div>
                             ))}
                         </div>
@@ -161,6 +160,7 @@ export default function Leads({ leads }: { leads: LeadPage }) {
                                     <Link
                                         href={index({
                                             query: {
+                                                category: selectedCategory?.id,
                                                 page: leads.currentPage - 1,
                                             },
                                         })}
@@ -187,6 +187,7 @@ export default function Leads({ leads }: { leads: LeadPage }) {
                                     <Link
                                         href={index({
                                             query: {
+                                                category: selectedCategory?.id,
                                                 page: leads.currentPage + 1,
                                             },
                                         })}

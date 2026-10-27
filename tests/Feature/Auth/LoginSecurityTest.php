@@ -80,7 +80,7 @@ test('logout clears the session and rotates its identifier and csrf token', func
     $this->actingAs($user)->withSession(['_token' => 'old-csrf-token', 'session-marker' => 'removed']);
     $previousSession = session()->getId();
 
-    $this->post(route('logout'))->assertRedirect(route('home'))->assertSessionMissing('session-marker');
+    $this->post(route('logout'))->assertRedirect(route('login'))->assertSessionMissing('session-marker');
 
     $this->assertGuest();
     expect(session()->getId())->not->toBe($previousSession);
