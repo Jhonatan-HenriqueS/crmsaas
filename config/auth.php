@@ -15,8 +15,11 @@ return [
     |
     */
 
-    'email_verification_required' => env('APP_ENV', 'production') !== 'local'
-        || env('AUTH_EMAIL_VERIFICATION_REQUIRED', true) !== false,
+    'email_verification_required' => env('AUTH_EMAIL_VERIFICATION_REQUIRED', true) !== false
+        || (
+            env('APP_ENV', 'production') !== 'local'
+            && env('AUTH_ALLOW_UNVERIFIED_EMAIL_IN_PRODUCTION', false) !== true
+        ),
 
     'defaults' => [
         'guard' => env('AUTH_GUARD', 'web'),

@@ -51,6 +51,23 @@ test('only an explicit local false disables email verification', function (strin
     'missing environment' => [false, 'false', true],
 ]);
 
+test('production disables email verification only with both explicit opt-outs', function (string|false $flag, string|false $allowProduction, bool $required) {
+    $configuration = securityConfiguration([
+        'APP_ENV' => 'production',
+        'AUTH_EMAIL_VERIFICATION_REQUIRED' => $flag,
+        'AUTH_ALLOW_UNVERIFIED_EMAIL_IN_PRODUCTION' => $allowProduction,
+    ]);
+
+    expect($configuration['verification'])->toBe($required);
+})->with([
+    'both opt-outs' => ['false', 'true', false],
+    'allow without opt-out' => ['true', 'true', true],
+    'allow without opt-out flag missing' => [false, 'true', true],
+    'opt-out without allow' => ['false', 'false', true],
+    'opt-out with invalid allow' => ['false', 'invalid', true],
+    'opt-out with missing allow' => ['false', false, true],
+]);
+
 test('session defaults protect production without preventing local http development', function (string|false $environment, ?bool $secure) {
     $configuration = securityConfiguration([
         'APP_ENV' => $environment, 'SESSION_SECURE_COOKIE' => false,
