@@ -1,5 +1,6 @@
 import { LoaderCircle } from 'lucide-react';
 import { useRef } from 'react';
+import type { ReactNode } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,7 +21,9 @@ export function SaleTransitionDialog({
     transition,
     processing = false,
     error,
+    confirmDisabled = false,
     onConfirm,
+    children,
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -29,7 +32,9 @@ export function SaleTransitionDialog({
     transition: LeadTransition;
     processing?: boolean;
     error?: string;
+    confirmDisabled?: boolean;
     onConfirm: () => void;
+    children?: ReactNode;
 }) {
     const cancel = useRef<HTMLButtonElement>(null);
     const returnFocus = useRef<HTMLElement | null>(null);
@@ -90,6 +95,7 @@ export function SaleTransitionDialog({
                         )}
                     </DialogDescription>
                 </DialogHeader>
+                {children}
                 <InputError
                     message={error}
                     role="alert"
@@ -108,7 +114,7 @@ export function SaleTransitionDialog({
                     </Button>
                     <Button
                         type="button"
-                        disabled={processing}
+                        disabled={processing || confirmDisabled}
                         onClick={onConfirm}
                         className="min-h-11 min-w-0 rounded-xl bg-primary [overflow-wrap:anywhere] whitespace-normal text-white hover:bg-primary/90"
                     >

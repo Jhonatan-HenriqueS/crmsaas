@@ -144,7 +144,7 @@ test('completion and reopening preserve the list context and require the origina
     $this->actingAs($own->user);
     $this->postJson(route('leads.complete', ['lead' => $lead->id, 'category' => $source->id]))
         ->assertUnprocessable()->assertJsonValidationErrors('confirm_completion');
-    $this->post(route('leads.complete', ['lead' => $lead->id, 'category' => $source->id]), ['confirm_completion' => true])
+    $this->post(route('leads.complete', ['lead' => $lead->id, 'category' => $source->id]), ['confirm_completion' => true, 'charged_amount' => '100.00'])
         ->assertRedirect(route('leads.index', ['page' => 1, 'category' => $source->id]));
     $this->getJson(route('leads.index', ['category' => $source->id]))->assertOk()->assertJsonPath('leads.total', 0);
     $this->getJson(route('leads.index', ['category' => $completed->id]))->assertOk()->assertJsonPath('leads.total', 1);

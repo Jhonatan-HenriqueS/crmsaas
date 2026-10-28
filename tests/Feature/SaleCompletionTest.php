@@ -28,7 +28,7 @@ test('creating directly in the permanent category requires explicit confirmation
     $this->assertDatabaseEmpty('leads');
 })->with(['missing' => null, 'false' => false, 'invalid' => 'accepted']);
 
-test('the three completion paths preserve optional and exact charged amounts', function (string $path, ?string $amount) {
+test('the three completion paths preserve exact charged amounts', function (string $path, ?string $amount) {
     $own = Membership::factory()->create();
     $category = $own->account->leadCategories()->sole();
     $this->actingAs($own->user);
@@ -51,7 +51,50 @@ test('the three completion paths preserve optional and exact charged amounts', f
     expect($lead->fresh()->category_id)->toBe($category->id);
     expect($lead->fresh()->charged_amount)->toBe($amount);
     expect($lead->fresh()->potential_amount)->toBe('9000.00');
-})->with(['create', 'edit', 'check'])->with([null, '0.00', '1500.37']);
+})->with(['create', 'edit', 'check'])->with(['0.01', '1500.37']);
+
+test('every completion path rejects a lead without a positive charged amount', function (string $path, mixed $amount) {
+    $own = Membership::factory()->create();
+    $category = $own->account->leadCategories()->sole();
+    $lead = Lead::factory()->for($own->account)->create();
+    $before = $lead->fresh()->getRawOriginal();
+    $this->actingAs($own->user);
+    $response = match ($path) {
+        'create' => $this->postJson(route('leads.store'), ['name' => 'Venda', 'category_id' => $category->id,
+            'first_contact_date' => '2026-10-01', 'charged_amount' => $amount, 'confirm_completion' => true]),
+        'edit' => $this->patchJson(route('leads.update', $lead), [...saleLeadPayload($lead), 'category_id' => $category->id,
+            'charged_amount' => $amount, 'confirm_completion' => true]),
+        'check' => $this->postJson(route('leads.complete', $lead), ['confirm_completion' => true, ...($amount === null ? [] : ['charged_amount' => $amount])]),
+    };
+    $response->assertUnprocessable()->assertJsonValidationErrors('charged_amount');
+    expect(Lead::count())->toBe(1);
+    expect($lead->fresh()->getRawOriginal())->toBe($before);
+})->with(['create', 'edit', 'check'])->with(['missing' => null, 'zero' => '0.00', 'negative' => '-10.00', 'text' => 'mil reais', 'three decimals' => '10.001']);
+
+test('the check path stores the charged amount together with the completion', function () {
+    $own = Membership::factory()->create();
+    $lead = Lead::factory()->for($own->account)->create();
+    $this->actingAs($own->user)->post(route('leads.complete', $lead), ['confirm_completion' => true, 'charged_amount' => '1500.37'])
+        ->assertRedirect()->assertInertiaFlash('toast.message', 'Venda finalizada com sucesso!');
+    expect($lead->fresh()->category->is_sale_completed)->toBeTrue();
+    expect($lead->fresh()->charged_amount)->toBe('1500.37');
+});
+
+test('a completed lead keeps a positive charged amount until it is reopened', function (?string $amount) {
+    $own = Membership::factory()->create();
+    $category = $own->account->leadCategories()->sole();
+    $lead = Lead::factory()->for($own->account)->for($category, 'category')->create(['charged_amount' => '123.45']);
+    $before = $lead->fresh()->getRawOriginal();
+    $this->actingAs($own->user)->patchJson(route('leads.update', $lead), [...saleLeadPayload($lead), 'charged_amount' => $amount])
+        ->assertUnprocessable()->assertJsonValidationErrors('charged_amount');
+    expect($lead->fresh()->getRawOriginal())->toBe($before);
+    $this->patch(route('leads.update', $lead), [...saleLeadPayload($lead), 'charged_amount' => '200.00'])->assertRedirect();
+    expect($lead->fresh()->charged_amount)->toBe('200.00');
+    $ordinary = LeadCategory::factory()->for($own->account)->create();
+    $this->patch(route('leads.update', $lead), [...saleLeadPayload($lead), 'category_id' => $ordinary->id, 'charged_amount' => $amount, 'confirm_reopening' => true])->assertRedirect();
+    expect($lead->fresh()->category_id)->toBe($ordinary->id);
+    expect($lead->fresh()->charged_amount)->toBe($amount);
+})->with([null, '0.00']);
 
 test('moving into the permanent category without confirmation leaves every stored field untouched', function () {
     $own = Membership::factory()->create();
@@ -80,7 +123,7 @@ test('the completion endpoint refuses missing confirmation and every authority f
 test('completion is idempotent after renaming and does not modify unrelated leads', function () {
     $this->freezeTime();
     $own = Membership::factory()->create();
-    $lead = Lead::factory()->for($own->account)->create();
+    $lead = Lead::factory()->for($own->account)->create(['charged_amount' => '100.00']);
     $other = Lead::factory()->create();
     $otherBefore = $other->fresh()->getRawOriginal();
     $category = $own->account->leadCategories()->where('system_key', 'sale_completed')->sole();
@@ -141,7 +184,7 @@ test('the new state changing endpoint requires a csrf token', function () {
 
 test('an exception after a transition write rolls the lead back', function () {
     $own = Membership::factory()->create();
-    $lead = Lead::factory()->for($own->account)->create();
+    $lead = Lead::factory()->for($own->account)->create(['charged_amount' => '100.00']);
     $before = $lead->fresh()->getRawOriginal();
     Exceptions::fake();
     Event::listen('eloquent.updated: '.Lead::class, fn () => throw new RuntimeException('Write failed.'));
@@ -155,7 +198,7 @@ test('an exception after a transition write rolls the lead back', function () {
 
 test('a stale ordinary edit cannot silently reopen a concurrently completed lead', function () {
     $own = Membership::factory()->create();
-    $lead = Lead::factory()->for($own->account)->create();
+    $lead = Lead::factory()->for($own->account)->create(['charged_amount' => '100.00']);
     $stale = saleLeadPayload($lead);
     $this->actingAs($own->user)->post(route('leads.complete', $lead), ['confirm_completion' => true])->assertRedirect();
     $this->patchJson(route('leads.update', $lead), $stale)->assertUnprocessable()->assertJsonValidationErrors('confirm_reopening');

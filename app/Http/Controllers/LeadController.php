@@ -125,7 +125,7 @@ class LeadController extends Controller
         $account = $currentAccount->get();
         $selectedCategory = $this->selectedCategory($request, $account);
         $category = $account->leadCategories()->where('system_key', LeadCategory::SALE_COMPLETED)->firstOrFail();
-        $lead = $saveLead->handle($account, ['category_id' => $category->id], $request->lead(), $request->boolean('confirm_completion'));
+        $lead = $saveLead->handle($account, ['category_id' => $category->id, ...$request->safe()->only('charged_amount')], $request->lead(), $request->boolean('confirm_completion'));
         if ($lead->wasChanged()) {
             FlashCrudSuccess::updated('Venda', feminine: true, verb: 'finalizada');
         }

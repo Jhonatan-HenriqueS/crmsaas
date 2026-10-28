@@ -6,6 +6,7 @@ export type DashboardData = {
     inProgressLeads: number;
     soldLeads: number;
     soldPercentage: number;
+    soldRevenue: string;
     reportingTimezone: string;
     weeklyTotal: number;
     categories: {

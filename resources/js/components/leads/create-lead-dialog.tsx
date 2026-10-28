@@ -5,6 +5,7 @@ import type { FormEvent } from 'react';
 import { toast } from 'sonner';
 import InputError from '@/components/input-error';
 import { LeadCategorySelector } from '@/components/leads/lead-category-selector';
+import { LeadMoneyField } from '@/components/leads/lead-money-field';
 import { SaleTransitionDialog } from '@/components/leads/sale-transition-dialog';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +22,7 @@ import {
     leadCreateClass,
     leadInputClass,
     formatLeadMoneyInput,
+    isPositiveLeadMoney,
     parseLeadMoney,
 } from '@/lib/lead-format';
 import { leadTransition } from '@/lib/lead-transition';
@@ -133,6 +135,13 @@ export function CreateLeadDialog(props: LeadDialogProps) {
                     'charged_amount',
                     'Use um valor até R$ 9.999.999.999,99, com vírgula para os centavos.',
                 );
+            return;
+        }
+        if (selected?.is_sale_completed && !isPositiveLeadMoney(charged)) {
+            form.setError(
+                'charged_amount',
+                'Informe um valor cobrado maior que zero para manter o lead em Finalizado.',
+            );
             return;
         }
         const requiredTransition = leadTransition(
@@ -466,51 +475,29 @@ export function CreateLeadDialog(props: LeadDialogProps) {
                     <div className="grid gap-5 min-[540px]:grid-cols-2">
                         {(['potential_amount', 'charged_amount'] as const).map(
                             (field) => (
-                                <div
+                                <LeadMoneyField
                                     key={field}
-                                    className="min-w-0 space-y-2.5"
-                                >
-                                    <Label htmlFor={`lead-${field}`}>
-                                        {field === 'potential_amount'
+                                    id={`lead-${field}`}
+                                    name={field}
+                                    label={
+                                        field === 'potential_amount'
                                             ? 'Valor potencial'
-                                            : 'Valor cobrado'}{' '}
-                                        <span className="text-xs font-normal text-muted-foreground">
-                                            (opcional)
-                                        </span>
-                                    </Label>
-                                    <div className="relative">
-                                        <span
-                                            aria-hidden="true"
-                                            className="pointer-events-none absolute top-3 left-3 text-sm text-muted-foreground"
-                                        >
-                                            R$
-                                        </span>
-                                        <Input
-                                            id={`lead-${field}`}
-                                            name={field}
-                                            inputMode="decimal"
-                                            autoComplete="off"
-                                            maxLength={24}
-                                            value={form.data[field]}
-                                            onChange={(e) =>
-                                                form.setData(
-                                                    field,
-                                                    e.target.value,
-                                                )
-                                            }
-                                            disabled={form.processing}
-                                            placeholder="0,00"
-                                            aria-invalid={!!form.errors[field]}
-                                            aria-describedby={`lead-${field}-error lead-money-help`}
-                                            className={`${leadInputClass} pl-10 tabular-nums`}
-                                        />
-                                    </div>
-                                    <InputError
-                                        id={`lead-${field}-error`}
-                                        message={form.errors[field]}
-                                        className="text-[#ffb4c0]"
-                                    />
-                                </div>
+                                            : 'Valor cobrado'
+                                    }
+                                    hint={
+                                        field === 'charged_amount' &&
+                                        selected?.is_sale_completed
+                                            ? '(obrigatório)'
+                                            : '(opcional)'
+                                    }
+                                    value={form.data[field]}
+                                    onChange={(value) =>
+                                        form.setData(field, value)
+                                    }
+                                    disabled={form.processing}
+                                    error={form.errors[field]}
+                                    describedBy="lead-money-help"
+                                />
                             ),
                         )}
                     </div>

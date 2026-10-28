@@ -10,6 +10,7 @@ import {
 import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { formatLeadMoney } from '@/lib/lead-format';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -69,27 +70,27 @@ export function DashboardMetrics({
     const metrics = [
         {
             title: 'Total de leads',
-            value: data.totalLeads,
+            value: formatCount(data.totalLeads),
             label: 'Visão geral da base',
             icon: Users,
         },
         {
             title: 'Novos leads',
-            value: newLeads.count,
+            value: formatCount(newLeads.count),
             label: periodLabel,
             icon: ScanLine,
             editable: true,
         },
         {
             title: 'Em acompanhamento',
-            value: data.inProgressLeads,
+            value: formatCount(data.inProgressLeads),
             label: 'Métrica disponível em breve',
             icon: Workflow,
         },
         {
             title: 'Leads vendidos',
-            value: data.soldLeads,
-            label: `${formatPercentage(data.soldPercentage)} do total de leads`,
+            value: formatLeadMoney(data.soldRevenue),
+            label: `${formatPercentage(data.soldPercentage)} do total de leads · ${formatCount(data.soldLeads)} ${data.soldLeads === 1 ? 'lead vendido' : 'leads vendidos'}`,
             icon: CircleDollarSign,
             green: true,
         },
@@ -105,7 +106,7 @@ export function DashboardMetrics({
                     key={metric.title}
                     className={cn(dashboardCardClass, 'relative')}
                 >
-                    <CardContent className="p-5 sm:p-6">
+                    <CardContent className="@container p-5 sm:p-6">
                         <div className="flex min-h-8 items-start justify-between gap-2">
                             <h2 className="pt-1 text-xs font-medium text-muted-foreground">
                                 {metric.title}
@@ -177,10 +178,14 @@ export function DashboardMetrics({
                             )}
                         </div>
                         <p
-                            className="mt-2 text-[2.1rem] leading-none font-semibold tracking-[-0.045em] tabular-nums"
+                            className={cn(
+                                'mt-2 text-[2.1rem] leading-none font-semibold tracking-[-0.045em] tabular-nums',
+                                metric.green &&
+                                    'text-[clamp(1.25rem,11.5cqw,2.1rem)] [overflow-wrap:anywhere]',
+                            )}
                             aria-live={metric.editable ? 'polite' : undefined}
                         >
-                            {formatCount(metric.value)}
+                            {metric.value}
                         </p>
                         <p className="mt-3 flex min-h-5 items-center gap-1.5 text-[11px] text-muted-foreground">
                             {metric.green ? (

@@ -49,6 +49,13 @@ export function formatLeadMoney(value: string | null): string {
     return `R$ ${new Intl.NumberFormat('pt-BR').format(BigInt(integer))},${fraction.padEnd(2, '0')}`;
 }
 
+/** Positive decimal-string amount check, without floating-point conversion. */
+export function isPositiveLeadMoney(
+    value: string | null | undefined,
+): value is string {
+    return typeof value === 'string' && /[1-9]/.test(value);
+}
+
 /** Refill the existing BRL input without changing null into zero. */
 export function formatLeadMoneyInput(value: string | null): string {
     return value === null ? '' : formatLeadMoney(value).slice(3);

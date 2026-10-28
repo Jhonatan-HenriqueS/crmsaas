@@ -43,7 +43,7 @@ class DashboardController extends Controller
 
     /**
      * @return array{
-     *     source: string, totalLeads: int, inProgressLeads: int, soldLeads: int, soldPercentage: float,
+     *     source: string, totalLeads: int, inProgressLeads: int, soldLeads: int, soldPercentage: float, soldRevenue: string,
      *     reportingTimezone: string, weeklyTotal: int,
      *     categories: list<array{id: int, name: string, color: string, count: int, percentage: float}>,
      *     weeklyIntake: list<array{day: string, date: string, count: int}>
@@ -55,7 +55,10 @@ class DashboardController extends Controller
         $records = $account->leadCategories()->select(['id', 'name', 'color', 'system_key'])
             ->withCount(['leads' => fn (Builder $query) => $query->where('account_id', $account->id)])
             ->orderByDesc('id')->get();
-        $sold = (int) ($records->firstWhere('system_key', LeadCategory::SALE_COMPLETED)?->getAttribute('leads_count') ?? 0);
+        $soldCategory = $records->firstWhere('system_key', LeadCategory::SALE_COMPLETED);
+        $sold = (int) ($soldCategory?->getAttribute('leads_count') ?? 0);
+        $soldCents = $soldCategory === null ? 0 : (int) $account->leads()->toBase()->where('category_id', $soldCategory->id)
+            ->selectRaw('COALESCE(SUM(CAST(ROUND(charged_amount * 100) AS BIGINT)), 0) AS cents')->value('cents');
         $categories = $records
             ->map(static function (LeadCategory $category) use ($total): array {
                 $count = (int) $category->getAttribute('leads_count');
@@ -76,6 +79,7 @@ class DashboardController extends Controller
             'inProgressLeads' => 0,
             'soldLeads' => $sold,
             'soldPercentage' => $total > 0 ? round($sold / $total * 100, 1) : 0.0,
+            'soldRevenue' => sprintf('%d.%02d', intdiv($soldCents, 100), $soldCents % 100),
             'reportingTimezone' => $now->getTimezone()->getName(),
             'weeklyTotal' => $weekly['total'],
             'categories' => array_values($categories),

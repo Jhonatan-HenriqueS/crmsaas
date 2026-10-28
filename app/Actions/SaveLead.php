@@ -32,6 +32,9 @@ class SaveLead
             }
 
             $record->fill($data);
+            if ($category->is_sale_completed && ! ((float) $record->charged_amount > 0)) {
+                throw ValidationException::withMessages(['charged_amount' => 'Informe um valor cobrado maior que zero para manter o lead em Finalizado.']);
+            }
             if (! $record->exists || $record->isDirty()) {
                 abort_unless($record->saveOrFail(), 409);
             }

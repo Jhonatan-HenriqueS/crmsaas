@@ -297,7 +297,7 @@ test('metrics query counts remain bounded as category and lead counts grow', fun
     try {
         $this->actingAs($own->user)->get(route('dashboard'))->assertOk();
         $dashboardQueries = collect(DB::getQueryLog())->filter(fn (array $query): bool => str_contains($query['query'], '"leads"'));
-        expect($dashboardQueries)->toHaveCount(4);
+        expect($dashboardQueries)->toHaveCount(5);
         foreach ($dashboardQueries as $query) {
             expect($query['query'])->toContain('account_id');
             expect($query['bindings'])->toContain($own->account_id);

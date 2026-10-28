@@ -1,8 +1,10 @@
 import { useForm, usePage } from '@inertiajs/react';
 import { Check } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { LeadMoneyField } from '@/components/leads/lead-money-field';
 import { SaleTransitionDialog } from '@/components/leads/sale-transition-dialog';
 import { Button } from '@/components/ui/button';
+import { isPositiveLeadMoney, parseLeadMoney } from '@/lib/lead-format';
 import { complete } from '@/routes/leads';
 import type { Lead } from '@/types/lead';
 import type { LeadCategory } from '@/types/lead-category';
@@ -22,12 +24,21 @@ export function CompleteLeadDialog({
     const [open, setOpen] = useState(false);
     const [requestError, setRequestError] = useState<string>();
     const submitting = useRef(false);
-    const form = useForm({ confirm_completion: true });
+    const form = useForm({ confirm_completion: true, charged_amount: '' });
     const completed = lead.category.is_sale_completed;
+    const requiresAmount = !isPositiveLeadMoney(lead.charged_amount);
+    const chargedAmount = parseLeadMoney(form.data.charged_amount);
+    const { charged_amount: amountError, ...otherErrors } = form.errors;
     function confirm() {
         if (submitting.current || form.processing) return;
+        if (requiresAmount && !isPositiveLeadMoney(chargedAmount)) return;
         submitting.current = true;
         setRequestError(undefined);
+        form.transform((data) =>
+            requiresAmount
+                ? { ...data, charged_amount: chargedAmount }
+                : { confirm_completion: data.confirm_completion },
+        );
         form.submit(
             complete(lead.id, {
                 query: { page, category: selectedCategory?.id },
@@ -71,6 +82,7 @@ export function CompleteLeadDialog({
                         : `Finalizar ${lead.name}`
                 }
                 onClick={() => {
+                    form.reset();
                     form.clearErrors();
                     setRequestError(undefined);
                     setOpen(true);
@@ -91,9 +103,27 @@ export function CompleteLeadDialog({
                 categoryName={category?.name ?? ''}
                 transition="complete"
                 processing={form.processing}
-                error={Object.values(form.errors)[0] || requestError}
+                error={Object.values(otherErrors)[0] || requestError}
+                confirmDisabled={
+                    requiresAmount && !isPositiveLeadMoney(chargedAmount)
+                }
                 onConfirm={confirm}
-            />
+            >
+                {requiresAmount && (
+                    <LeadMoneyField
+                        id={`complete-lead-${lead.id}-charged_amount`}
+                        name="charged_amount"
+                        label="Valor cobrado"
+                        hint="(obrigatório)"
+                        value={form.data.charged_amount}
+                        onChange={(value) =>
+                            form.setData('charged_amount', value)
+                        }
+                        disabled={form.processing}
+                        error={amountError}
+                    />
+                )}
+            </SaleTransitionDialog>
         </>
     );
 }

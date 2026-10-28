@@ -6,6 +6,7 @@ import {
     formatLeadDate,
     formatLeadMoney,
     formatLeadMoneyInput,
+    isPositiveLeadMoney,
     localCivilDate,
     parseLeadMoney,
 } from '../../resources/js/lib/lead-format.ts';
@@ -90,3 +91,15 @@ test('database colors cannot inject CSS', () => {
         '#6d54b5',
     );
 });
+
+for (const [value, expected] of [
+    [null, false],
+    [undefined, false],
+    ['0.00', false],
+    ['0.01', true],
+    ['1500.00', true],
+]) {
+    test(`positive money check: ${value}`, () => {
+        assert.equal(isPositiveLeadMoney(value), expected);
+    });
+}

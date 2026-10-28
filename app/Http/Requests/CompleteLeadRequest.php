@@ -15,6 +15,7 @@ class CompleteLeadRequest extends MutateLeadRequest
     {
         return [
             'confirm_completion' => ['required', 'accepted'],
+            'charged_amount' => parent::rules()['charged_amount'],
             'page' => ['sometimes', 'integer', 'min:1', 'max:2147483647'],
             'category' => ['bail', 'sometimes', 'required', 'integer', 'min:1', 'max:'.PHP_INT_MAX],
         ];

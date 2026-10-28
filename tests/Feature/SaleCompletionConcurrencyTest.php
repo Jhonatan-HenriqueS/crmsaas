@@ -21,7 +21,7 @@ test('concurrent confirmed completions preserve one sale and one permanent categ
         $user = User::factory()->connection('completion_race')->create();
         $account->memberships()->create(['user_id' => $user->id, 'role' => 'owner']);
         $ordinary = $account->leadCategories()->create(['name' => 'Em contato', 'color' => '#112233']);
-        $lead = $account->leads()->create(['category_id' => $ordinary->id, 'name' => 'Concorrente', 'first_contact_date' => '2020-01-01']);
+        $lead = $account->leads()->create(['category_id' => $ordinary->id, 'name' => 'Concorrente', 'first_contact_date' => '2020-01-01', 'charged_amount' => '100.00']);
         $script = <<<'PHP'
             require 'vendor/autoload.php';
             $app = require 'bootstrap/app.php';
