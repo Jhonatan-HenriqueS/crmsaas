@@ -44,6 +44,7 @@ class DashboardController extends Controller
     /**
      * @return array{
      *     source: string, totalLeads: int, inProgressLeads: int, soldLeads: int, soldPercentage: float, soldRevenue: string,
+     *     goalAmount: string|null, goalDeadline: string|null, goalRemaining: string|null,
      *     reportingTimezone: string, weeklyTotal: int,
      *     categories: list<array{id: int, name: string, color: string, count: int, percentage: float}>,
      *     weeklyIntake: list<array{day: string, date: string, count: int}>
@@ -79,7 +80,10 @@ class DashboardController extends Controller
             'inProgressLeads' => 0,
             'soldLeads' => $sold,
             'soldPercentage' => $total > 0 ? round($sold / $total * 100, 1) : 0.0,
-            'soldRevenue' => sprintf('%d.%02d', intdiv($soldCents, 100), $soldCents % 100),
+            'soldRevenue' => $this->money($soldCents),
+            'goalAmount' => $account->goal_amount,
+            'goalDeadline' => $account->goal_deadline?->toDateString(),
+            'goalRemaining' => $account->goal_amount === null ? null : $this->money((int) str_replace('.', '', $account->goal_amount) - $soldCents),
             'reportingTimezone' => $now->getTimezone()->getName(),
             'weeklyTotal' => $weekly['total'],
             'categories' => array_values($categories),
@@ -115,6 +119,11 @@ class DashboardController extends Controller
         }
 
         return ['total' => (int) ($counts->weekly_total ?? 0), 'days' => $days];
+    }
+
+    private function money(int $cents): string
+    {
+        return ($cents < 0 ? '-' : '').sprintf('%d.%02d', intdiv(abs($cents), 100), abs($cents) % 100);
     }
 
     private function storageBoundary(CarbonImmutable $date): string

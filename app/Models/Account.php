@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Actions\EnsureSaleCompletedCategory;
+use Carbon\CarbonImmutable;
 use Database\Factories\AccountFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,14 +15,25 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $id
  * @property string $type
  * @property string|null $name
+ * @property string|null $goal_amount
+ * @property CarbonImmutable|null $goal_deadline
  */
-#[Fillable(['type', 'name'])]
+#[Fillable(['type', 'name', 'goal_amount', 'goal_deadline'])]
 class Account extends Model
 {
     /** @use HasFactory<AccountFactory> */
     use HasFactory;
 
     public const TYPES = ['empresa', 'agencia'];
+
+    /** @return array<string, string> */
+    protected function casts(): array
+    {
+        return [
+            'goal_amount' => 'decimal:2',
+            'goal_deadline' => 'immutable_date:Y-m-d',
+        ];
+    }
 
     /** @param array<string, mixed> $options */
     public function save(array $options = []): bool

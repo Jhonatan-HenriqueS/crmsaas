@@ -4,13 +4,14 @@ import {
     CircleDollarSign,
     Pencil,
     ScanLine,
+    Target,
     Users,
-    Workflow,
 } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { DashboardGoalDialog } from '@/components/dashboard/dashboard-goal-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { formatLeadMoney } from '@/lib/lead-format';
+import { formatLeadDate, formatLeadMoney } from '@/lib/lead-format';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -24,6 +25,7 @@ import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import {
     dashboardCardClass,
+    dashboardEditButtonClass,
     dashboardPeriods,
     formatCount,
     formatPercentage,
@@ -82,10 +84,18 @@ export function DashboardMetrics({
             editable: true,
         },
         {
-            title: 'Em acompanhamento',
-            value: formatCount(data.inProgressLeads),
-            label: 'Métrica disponível em breve',
-            icon: Workflow,
+            title: 'Meta',
+            value:
+                data.goalRemaining === null
+                    ? 'Sem meta'
+                    : formatLeadMoney(data.goalRemaining),
+            label:
+                data.goalRemaining === null
+                    ? 'Nenhuma meta definida · use o botão de editar'
+                    : `Meta: ${formatLeadMoney(data.goalAmount)}${data.goalDeadline ? ` · até ${formatLeadDate(data.goalDeadline)}` : ''}`,
+            icon: Target,
+            goal: true,
+            fit: true,
         },
         {
             title: 'Leads vendidos',
@@ -93,6 +103,7 @@ export function DashboardMetrics({
             label: `${formatPercentage(data.soldPercentage)} do total de leads · ${formatCount(data.soldLeads)} ${data.soldLeads === 1 ? 'lead vendido' : 'leads vendidos'}`,
             icon: CircleDollarSign,
             green: true,
+            fit: true,
         },
     ];
 
@@ -118,7 +129,7 @@ export function DashboardMetrics({
                                             type="button"
                                             variant="ghost"
                                             size="icon"
-                                            className="-mt-1 -mr-1 size-9 shrink-0 rounded-full border border-white/70 bg-[#e3d8f7] text-[#4b347c] shadow-[0_0_18px_-3px_#e4d7ff55] transition-[color,background-color,border-color,box-shadow] hover:bg-[#f2ebff] hover:text-[#39245f] hover:shadow-[0_0_22px_-2px_#e4d7ff66] data-[state=open]:bg-[#f2ebff] motion-reduce:transition-none"
+                                            className={dashboardEditButtonClass}
                                             disabled={loading}
                                             aria-busy={loading}
                                             aria-label="Alterar período dos novos leads"
@@ -166,6 +177,8 @@ export function DashboardMetrics({
                                         </DropdownMenuRadioGroup>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
+                            ) : metric.goal ? (
+                                <DashboardGoalDialog data={data} />
                             ) : (
                                 <metric.icon
                                     className={cn(
@@ -180,10 +193,15 @@ export function DashboardMetrics({
                         <p
                             className={cn(
                                 'mt-2 text-[2.1rem] leading-none font-semibold tracking-[-0.045em] tabular-nums',
-                                metric.green &&
-                                    'text-[clamp(1.25rem,11.5cqw,2.1rem)] [overflow-wrap:anywhere] text-[var(--dashboard-green)]',
+                                metric.fit &&
+                                    'text-[clamp(1.25rem,11.5cqw,2.1rem)] [overflow-wrap:anywhere]',
+                                metric.green && 'text-[var(--dashboard-green)]',
                             )}
-                            aria-live={metric.editable ? 'polite' : undefined}
+                            aria-live={
+                                metric.editable || metric.goal
+                                    ? 'polite'
+                                    : undefined
+                            }
                         >
                             {metric.value}
                         </p>

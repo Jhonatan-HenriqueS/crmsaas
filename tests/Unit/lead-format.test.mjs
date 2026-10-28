@@ -84,6 +84,8 @@ test('money display preserves null zero and every cent', () => {
     assert.equal(formatLeadMoney('0.00'), 'R$ 0,00');
     assert.equal(formatLeadMoney('1500.01'), 'R$ 1.500,01');
     assert.equal(formatLeadMoney('9999999999.99'), 'R$ 9.999.999.999,99');
+    assert.equal(formatLeadMoney('-2500.00'), '-R$ 2.500,00');
+    assert.equal(formatLeadMoney('-0.01'), '-R$ 0,01');
 });
 test('database colors cannot inject CSS', () => {
     assert.equal(categoryColor('#00aAbB'), '#00aAbB');

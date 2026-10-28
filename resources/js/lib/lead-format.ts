@@ -45,8 +45,9 @@ export function parseLeadMoney(input: string): string | null | undefined {
 
 export function formatLeadMoney(value: string | null): string {
     if (value === null) return 'Não informado';
-    const [integer, fraction = ''] = value.split('.');
-    return `R$ ${new Intl.NumberFormat('pt-BR').format(BigInt(integer))},${fraction.padEnd(2, '0')}`;
+    const sign = value.startsWith('-') ? '-' : '';
+    const [integer, fraction = ''] = value.replace(/^-/, '').split('.');
+    return `${sign}R$ ${new Intl.NumberFormat('pt-BR').format(BigInt(integer))},${fraction.padEnd(2, '0')}`;
 }
 
 /** Positive decimal-string amount check, without floating-point conversion. */

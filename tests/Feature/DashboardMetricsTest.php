@@ -328,3 +328,66 @@ test('metrics query counts remain bounded as category and lead counts grow', fun
         DB::flushQueryLog();
     }
 })->with(['one category' => 1, 'twenty categories' => 20]);
+
+test('the owner sets edits and removes the account goal and the remaining amount follows sales exactly', function () {
+    $own = Membership::factory()->create();
+    $completed = $own->account->leadCategories()->sole();
+    $ordinary = LeadCategory::factory()->for($own->account)->create();
+    Lead::factory()->for($own->account)->for($completed, 'category')->create(['charged_amount' => '2500.01']);
+    $reopened = Lead::factory()->for($own->account)->for($completed, 'category')->create(['charged_amount' => '0.99']);
+    $this->actingAs($own->user)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page
+        ->where('overview.goalAmount', null)->where('overview.goalDeadline', null)->where('overview.goalRemaining', null));
+
+    $this->put(route('dashboard.goal.update'), ['goal_amount' => '10000.00', 'deadline_days' => 30])->assertRedirect(route('dashboard'));
+    $this->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page
+        ->where('overview.goalAmount', '10000.00')->where('overview.goalDeadline', '2026-11-15')->where('overview.goalRemaining', '7499.00'));
+
+    $this->patch(route('leads.update', $reopened), ['name' => $reopened->name, 'first_contact_date' => $reopened->first_contact_date->toDateString(),
+        'category_id' => $ordinary->id, 'charged_amount' => '0.99', 'confirm_reopening' => true])->assertRedirect();
+    $this->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('overview.goalRemaining', '7499.99'));
+
+    $this->put(route('dashboard.goal.update'), ['goal_amount' => '2500.00', 'deadline_date' => '2026-10-16'])->assertSessionHasNoErrors();
+    $this->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page
+        ->where('overview.goalAmount', '2500.00')->where('overview.goalDeadline', '2026-10-16')->where('overview.goalRemaining', '-0.01'));
+    $this->put(route('dashboard.goal.update'), ['goal_amount' => '100', 'deadline_days' => 1])->assertSessionHasNoErrors();
+    $this->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page
+        ->where('overview.goalDeadline', '2026-10-17')->where('overview.goalRemaining', '-2400.01'));
+
+    $this->delete(route('dashboard.goal.destroy'))->assertRedirect(route('dashboard'));
+    expect($own->account->fresh()->only(['goal_amount', 'goal_deadline']))->toBe(['goal_amount' => null, 'goal_deadline' => null]);
+});
+
+test('invalid goal amounts and deadlines are rejected without changing the goal', function (array $payload, string $field) {
+    $own = Membership::factory()->create();
+    $own->account->update(['goal_amount' => '500.00', 'goal_deadline' => '2026-12-01']);
+
+    $this->actingAs($own->user)->putJson(route('dashboard.goal.update'), $payload)
+        ->assertUnprocessable()->assertJsonValidationErrors($field);
+
+    expect($own->account->fresh()->goal_amount)->toBe('500.00');
+})->with([
+    'zero amount' => [['goal_amount' => '0', 'deadline_days' => 10], 'goal_amount'],
+    'negative amount' => [['goal_amount' => '-1.00', 'deadline_days' => 10], 'goal_amount'],
+    'text amount' => [['goal_amount' => 'mil reais', 'deadline_days' => 10], 'goal_amount'],
+    'three decimals' => [['goal_amount' => '1.001', 'deadline_days' => 10], 'goal_amount'],
+    'zero days' => [['goal_amount' => '100.00', 'deadline_days' => 0], 'deadline_days'],
+    'too many days' => [['goal_amount' => '100.00', 'deadline_days' => 3651], 'deadline_days'],
+    'past date' => [['goal_amount' => '100.00', 'deadline_date' => '2026-10-15'], 'deadline_date'],
+    'missing deadline' => [['goal_amount' => '100.00'], 'deadline_days'],
+    'days and date together' => [['goal_amount' => '100.00', 'deadline_days' => 5, 'deadline_date' => '2026-12-01'], 'deadline_days'],
+    'authority field' => [['goal_amount' => '100.00', 'deadline_days' => 5, 'account_id' => 999], 'form'],
+]);
+
+test('goals stay inside their account and users without an owned account cannot manage one', function () {
+    $own = Membership::factory()->create();
+    $foreign = Membership::factory()->create();
+    $this->actingAs($own->user)->put(route('dashboard.goal.update'), ['goal_amount' => '1000.00', 'deadline_days' => 10])->assertSessionHasNoErrors();
+
+    $this->actingAs($foreign->user)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('overview.goalAmount', null));
+    $this->delete(route('dashboard.goal.destroy'))->assertRedirect();
+    expect($own->account->fresh()->goal_amount)->toBe('1000.00');
+
+    $outsider = User::factory()->create();
+    $this->actingAs($outsider)->put(route('dashboard.goal.update'), ['goal_amount' => '1.00', 'deadline_days' => 1])->assertNotFound();
+    $this->delete(route('dashboard.goal.destroy'))->assertNotFound();
+});
