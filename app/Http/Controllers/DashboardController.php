@@ -54,7 +54,7 @@ class DashboardController extends Controller
         $total = $account->leads()->count();
         $records = $account->leadCategories()->select(['id', 'name', 'color', 'system_key'])
             ->withCount(['leads' => fn (Builder $query) => $query->where('account_id', $account->id)])
-            ->orderByDesc('id')->get();
+            ->orderByDesc('leads_count')->orderByDesc('id')->get();
         $soldCategory = $records->firstWhere('system_key', LeadCategory::SALE_COMPLETED);
         $sold = (int) ($soldCategory?->getAttribute('leads_count') ?? 0);
         $soldCents = $soldCategory === null ? 0 : (int) $account->leads()->toBase()->where('category_id', $soldCategory->id)

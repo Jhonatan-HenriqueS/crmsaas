@@ -190,14 +190,31 @@ test('the donut includes categories beyond pagination and paginated percentages 
     $response = $this->actingAs($own->user)->get(route('dashboard'))
         ->assertInertia(fn (Assert $page) => $page->has('overview.categories', 15)
             ->where('overview.categories.0.id', $categories->last()->id)->where('overview.categories.0.count', 2)
-            ->where('overview.categories.0.percentage', 66.7)->where('overview.categories.13.id', $categories->first()->id)
-            ->where('overview.categories.13.percentage', 33.3));
+            ->where('overview.categories.0.percentage', 66.7)->where('overview.categories.1.id', $categories->first()->id)
+            ->where('overview.categories.1.percentage', 33.3));
     expect(array_sum(array_column($response->inertiaProps('overview.categories'), 'count')))->toBe(3);
     $this->get(route('categories.index'))->assertInertia(fn (Assert $page) => $page->has('categories.data', 12)
         ->where('totalLeads', 3)->where('categories.data.0.percentage', 66.7));
     $this->get(route('categories.index', ['page' => 2]))->assertInertia(fn (Assert $page) => $page->has('categories.data', 2)
         ->where('totalLeads', 3)->where('categories.data.1.id', $categories->first()->id)
         ->where('categories.data.1.leads_count', 1)->where('categories.data.1.percentage', 33.3));
+});
+
+test('donut categories are ordered from most to fewest leads with ties by newest category', function () {
+    $own = Membership::factory()->create();
+    [$few, $many, $tieOld, $tieNew] = LeadCategory::factory()->count(4)->for($own->account)
+        ->sequence(fn (Sequence $sequence): array => ['color' => sprintf('#%06x', $sequence->index + 1)])->create()->all();
+    metricLead($own->account, '2026-10-16 12:00:00', $few);
+    foreach (range(1, 3) as $ignored) {
+        metricLead($own->account, '2026-10-16 12:00:00', $many);
+    }
+    foreach ([$tieOld, $tieOld, $tieNew, $tieNew] as $category) {
+        metricLead($own->account, '2026-10-16 12:00:00', $category);
+    }
+    $response = $this->actingAs($own->user)->get(route('dashboard'))->assertOk();
+    expect(array_column($response->inertiaProps('overview.categories'), 'id'))->toBe([
+        $many->id, $tieNew->id, $tieOld->id, $few->id, $own->account->leadCategories()->where('system_key', LeadCategory::SALE_COMPLETED)->value('id'),
+    ]);
 });
 
 test('percentage rounding is independent and does not fabricate counts to force a hundred percent', function () {

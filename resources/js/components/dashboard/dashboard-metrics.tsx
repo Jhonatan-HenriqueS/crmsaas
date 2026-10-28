@@ -181,7 +181,7 @@ export function DashboardMetrics({
                             className={cn(
                                 'mt-2 text-[2.1rem] leading-none font-semibold tracking-[-0.045em] tabular-nums',
                                 metric.green &&
-                                    'text-[clamp(1.25rem,11.5cqw,2.1rem)] [overflow-wrap:anywhere]',
+                                    'text-[clamp(1.25rem,11.5cqw,2.1rem)] [overflow-wrap:anywhere] text-[var(--dashboard-green)]',
                             )}
                             aria-live={metric.editable ? 'polite' : undefined}
                         >
