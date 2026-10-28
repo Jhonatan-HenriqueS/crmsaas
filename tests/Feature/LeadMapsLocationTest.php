@@ -5,6 +5,7 @@ use App\Models\LeadCategory;
 use App\Models\Membership;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Sleep;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(fn () => Http::preventStrayRequests());
@@ -29,7 +30,25 @@ test('long links store the coordinates found in the url', function (string $url,
     'viewport' => ['https://www.google.com.br/maps/@-23.5505199,-46.6333094,17z', '-23.5505199', '-46.6333094'],
     'query' => ['https://maps.google.com/?q=-8.76,-63.9', '-8.7600000', '-63.9000000'],
     'll' => ['https://maps.google.com/maps?ll=40.7128,-74.006&z=12', '40.7128000', '-74.0060000'],
+    'dropped pin' => ['https://www.google.com/maps/search/-10.882253,+-61.967565?entry=tts', '-10.8822530', '-61.9675650'],
 ]);
+
+test('app share links without coordinates are geocoded from the place address', function () {
+    Sleep::fake();
+    Http::fake([
+        'https://maps.app.goo.gl/*' => Http::response('', 302, ['Location' => 'https://www.google.com/maps/place/Devonwood+Manor+Motel+312+Fenton+Street,+Glenholme,+Rotorua+3010,+New+Zealand/data=!4m2!3m1!1s0x6d6c27607e543dd5:0x94325847b386a021?entry=gps&g_st=ic']),
+        'https://nominatim.openstreetmap.org/*' => Http::sequence()->push([])->push([['lat' => '-38.1516492', 'lon' => '176.2541514']]),
+    ]);
+    $own = Membership::factory()->create();
+    $shared = "Devonwood Manor Motel\n312 Fenton Street, Rotorua\nhttps://maps.app.goo.gl/H2A6kBf6BA5TL95YA?g_st=ic";
+
+    $this->actingAs($own->user)->post(route('leads.store'), leadMapsPayload($own, $shared))->assertSessionHasNoErrors();
+
+    $this->assertDatabaseHas('leads', ['maps_url' => 'https://maps.app.goo.gl/H2A6kBf6BA5TL95YA?g_st=ic', 'latitude' => '-38.1516492', 'longitude' => '176.2541514']);
+    Http::assertSent(fn (Request $request) => str_starts_with($request->url(), 'https://nominatim.openstreetmap.org/search')
+        && $request['q'] === '312 Fenton Street, Glenholme, Rotorua 3010, New Zealand' && $request->hasHeader('User-Agent', config('app.name').' ('.config('app.url').')'));
+    Sleep::assertSleptTimes(1);
+});
 
 test('short links are resolved on the server through allowlisted redirects only', function () {
     Http::fake(['https://maps.app.goo.gl/*' => Http::response('', 302, ['Location' => 'https://www.google.com/maps/@-10.88,-61.95,15z'])]);

@@ -101,9 +101,10 @@ export function CreateLeadDialog(props: LeadDialogProps) {
 
     async function pasteMapsUrl() {
         try {
+            const text = (await navigator.clipboard.readText()).trim();
             form.setData(
                 'maps_url',
-                (await navigator.clipboard.readText()).trim(),
+                text.match(/https?:\/\/\S+/i)?.[0] ?? text,
             );
             form.clearErrors('maps_url');
         } catch {

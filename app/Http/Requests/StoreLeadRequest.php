@@ -35,6 +35,10 @@ class StoreLeadRequest extends FormRequest
                 $this->merge([$field => $field !== 'name' && $value === '' ? null : $value]);
             }
         }
+
+        if (is_string($this->input('maps_url')) && preg_match('#https?://\S+#i', $this->input('maps_url'), $link)) {
+            $this->merge(['maps_url' => $link[0]]);
+        }
     }
 
     /**
