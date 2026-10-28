@@ -134,6 +134,7 @@ decisão arquitetural), o Claude **DEVE** atualizar **dentro deste CLAUDE.md**, 
 **Tarefa concluída = todos verdadeiros:** testes relevantes passando · `vendor/bin/pint --dirty --format agent` ·
 `composer types:check` (se PHP) · `npm run check` e `npm run types:check` (se front) · seções afetadas,
 matrizes 10, seção 11, anexo (se a arquitetura-alvo mudou), 13 (com hash base) e 14 atualizadas ·
+`npx vp fmt CLAUDE.md` após editar este arquivo (`vp check` no CI reprova Markdown não formatado) ·
 resumo de 2–3 linhas no chat.
 
 **Antes de encerrar a sessão:** confirmar que 14.1 e 14.2 refletem o estado real e que toda decisão
@@ -1238,14 +1239,15 @@ Base aprovada:
 
 ## 13. Changelog deste arquivo
 
-| Data       | Mudança                                                                                                                                                                                                                                                       |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-10-27 | Criação do CLAUDE.md: instruções para o Claude, mapeamento completo do MVP v1 (commits até `aa06919`), segurança implementada, gap analysis contra o documento de arquitetura e anexo integral do PDF. Nenhum código alterado.                                |
-| 2026-10-27 | `/CLAUDE.md` removido do `.gitignore`: este arquivo passa a ser versionado com o projeto.                                                                                                                                                                     |
-| 2026-10-27 | CLAUDE.md comprimido; anexo (seção 12) passa a ser especificação viva e atualizável (regra 0.4 alterada). Nenhum código alterado.                                                                                                                             |
-| 2026-10-27 | Segunda passada: deduplicação, remoção de prosa/referências numeradas, regras 8–12 (um fato um lugar, rotação do changelog, orçamento de 650 linhas que nunca vence o contexto). Nenhum código alterado.                                                      |
-| 2026-10-27 | Seção 14 (pendências, decisões e próximos passos — memória entre sessões) criada; regra 0.4 item 13 e leitura de 14.1/14.3 em 0.1. Nenhum código alterado.                                                                                                    |
-| 2026-10-27 | Seção 0.6 (retomada, documentação das ferramentas, tarefa concluída); `@AGENTS.md`; coluna Doc na seção 2; regras 0.4 itens 5, 9, 10 e 11 (tamanho só informativo, nunca corta contexto; changelog completo; hash base). Nenhum código alterado. base 8f675ce |
+| Data       | Mudança                                                                                                                                                                                                                                                                                                                                                    |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-27 | Criação do CLAUDE.md: instruções para o Claude, mapeamento completo do MVP v1 (commits até `aa06919`), segurança implementada, gap analysis contra o documento de arquitetura e anexo integral do PDF. Nenhum código alterado.                                                                                                                             |
+| 2026-10-27 | `/CLAUDE.md` removido do `.gitignore`: este arquivo passa a ser versionado com o projeto.                                                                                                                                                                                                                                                                  |
+| 2026-10-27 | CLAUDE.md comprimido; anexo (seção 12) passa a ser especificação viva e atualizável (regra 0.4 alterada). Nenhum código alterado.                                                                                                                                                                                                                          |
+| 2026-10-27 | Segunda passada: deduplicação, remoção de prosa/referências numeradas, regras 8–12 (um fato um lugar, rotação do changelog, orçamento de 650 linhas que nunca vence o contexto). Nenhum código alterado.                                                                                                                                                   |
+| 2026-10-27 | Seção 14 (pendências, decisões e próximos passos — memória entre sessões) criada; regra 0.4 item 13 e leitura de 14.1/14.3 em 0.1. Nenhum código alterado.                                                                                                                                                                                                 |
+| 2026-10-27 | Seção 0.6 (retomada, documentação das ferramentas, tarefa concluída); `@AGENTS.md`; coluna Doc na seção 2; regras 0.4 itens 5, 9, 10 e 11 (tamanho só informativo, nunca corta contexto; changelog completo; hash base). Nenhum código alterado. base 8f675ce                                                                                              |
+| 2026-10-27 | CI quebrado por formatação do CLAUDE.md (`vp check`: "Formatting issues found"); corrigido com `npx vp fmt CLAUDE.md` (só espaços, alinhamento de tabelas, `*x*` → `_x_`); 0.6 passa a exigir o fmt. Arquivos Wayfinder locais regenerados (`--with-form`, gitignored). `composer ci:check` local verde (677 testes). Nenhum código alterado. base 487f6a0 |
 
 ---
 
