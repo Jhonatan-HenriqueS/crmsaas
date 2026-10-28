@@ -59,18 +59,7 @@ export function LeadCard({
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1.5">
                         <div className="flex gap-1.5">
-                            {lead.maps_url &&
-                                lead.latitude !== null &&
-                                lead.longitude !== null && (
-                                    <LeadMapDialog
-                                        name={lead.name}
-                                        mapsUrl={lead.maps_url}
-                                        position={[
-                                            Number(lead.latitude),
-                                            Number(lead.longitude),
-                                        ]}
-                                    />
-                                )}
+                            <LeadMapDialog lead={lead} page={page} />
                             <CreateLeadDialog
                                 mode="edit"
                                 lead={lead}

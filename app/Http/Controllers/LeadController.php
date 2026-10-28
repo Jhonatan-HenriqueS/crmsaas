@@ -8,6 +8,7 @@ use App\Http\CurrentAccount;
 use App\Http\Requests\CompleteLeadRequest;
 use App\Http\Requests\MutateLeadRequest;
 use App\Http\Requests\StoreLeadRequest;
+use App\Http\Requests\UpdateLeadLocationRequest;
 use App\Models\Account;
 use App\Models\Lead;
 use App\Models\LeadCategory;
@@ -128,6 +129,17 @@ class LeadController extends Controller
         $lead = $saveLead->handle($account, ['category_id' => $category->id, ...$request->safe()->only('charged_amount')], $request->lead(), $request->boolean('confirm_completion'));
         if ($lead->wasChanged()) {
             FlashCrudSuccess::updated('Venda', feminine: true, verb: 'finalizada');
+        }
+
+        return to_route('leads.index', array_filter(['page' => $request->integer('page', 1), 'category' => $selectedCategory?->id]));
+    }
+
+    public function location(UpdateLeadLocationRequest $request, CurrentAccount $currentAccount, SaveLead $saveLead): RedirectResponse
+    {
+        $selectedCategory = $this->selectedCategory($request, $currentAccount->get());
+        $lead = $saveLead->handle($currentAccount->get(), ['category_id' => $request->lead()->category_id, ...$request->safe()->only('maps_url'), ...$request->mapsLocation()], $request->lead());
+        if ($lead->wasChanged()) {
+            FlashCrudSuccess::updated('Localização', feminine: true, verb: 'salva');
         }
 
         return to_route('leads.index', array_filter(['page' => $request->integer('page', 1), 'category' => $selectedCategory?->id]));

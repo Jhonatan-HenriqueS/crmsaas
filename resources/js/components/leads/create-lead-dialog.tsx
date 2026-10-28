@@ -1,10 +1,11 @@
 import { router, useForm, usePage } from '@inertiajs/react';
-import { ClipboardPaste, LoaderCircle, Pencil, Plus } from 'lucide-react';
+import { LoaderCircle, Pencil, Plus } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { toast } from 'sonner';
 import InputError from '@/components/input-error';
 import { LeadCategorySelector } from '@/components/leads/lead-category-selector';
+import { LeadMapsUrlField } from '@/components/leads/lead-maps-url-field';
 import { LeadMoneyField } from '@/components/leads/lead-money-field';
 import { SaleTransitionDialog } from '@/components/leads/sale-transition-dialog';
 import { Button } from '@/components/ui/button';
@@ -99,19 +100,6 @@ export function CreateLeadDialog(props: LeadDialogProps) {
             setTransition(null);
         }
         setOpen(next);
-    }
-
-    async function pasteMapsUrl() {
-        try {
-            const text = (await navigator.clipboard.readText()).trim();
-            form.setData(
-                'maps_url',
-                text.match(/https?:\/\/\S+/i)?.[0] ?? text,
-            );
-            form.clearErrors('maps_url');
-        } catch {
-            return;
-        }
     }
 
     function submit(event: FormEvent<HTMLFormElement>) {
@@ -366,43 +354,18 @@ export function CreateLeadDialog(props: LeadDialogProps) {
                                 (opcional)
                             </span>
                         </Label>
-                        <div className="relative">
-                            <Input
-                                id="lead-maps-url"
-                                name="maps_url"
-                                inputMode="url"
-                                autoComplete="off"
-                                maxLength={2048}
-                                value={form.data.maps_url}
-                                onChange={(e) =>
-                                    form.setData('maps_url', e.target.value)
-                                }
-                                disabled={form.processing}
-                                placeholder="https://maps.app.goo.gl/..."
-                                aria-invalid={!!form.errors.maps_url}
-                                aria-describedby="lead-maps-url-error"
-                                className={`${leadInputClass} pr-14`}
-                            />
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="icon"
-                                onClick={pasteMapsUrl}
-                                disabled={form.processing}
-                                aria-label="Colar link do Google Maps"
-                                title="Colar link"
-                                className="absolute top-1/2 right-1.5 size-8 -translate-y-1/2 rounded-lg border-white/10 bg-white/[0.06] text-muted-foreground hover:bg-primary/15 hover:text-foreground"
-                            >
-                                <ClipboardPaste
-                                    className="size-3.5"
-                                    aria-hidden="true"
-                                />
-                            </Button>
-                        </div>
-                        <InputError
-                            id="lead-maps-url-error"
-                            message={form.errors.maps_url}
-                            className="text-[#ffb4c0]"
+                        <LeadMapsUrlField
+                            id="lead-maps-url"
+                            value={form.data.maps_url}
+                            onChange={(value) =>
+                                form.setData('maps_url', value)
+                            }
+                            onPasteLink={(link) => {
+                                form.setData('maps_url', link);
+                                form.clearErrors('maps_url');
+                            }}
+                            disabled={form.processing}
+                            error={form.errors.maps_url}
                         />
                     </div>
                     <div className="grid gap-5 min-[540px]:grid-cols-2">

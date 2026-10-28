@@ -8,6 +8,7 @@ import {
     formatLeadMoneyInput,
     isPositiveLeadMoney,
     localCivilDate,
+    mapsLinkFrom,
     parseLeadMoney,
 } from '../../resources/js/lib/lead-format.ts';
 
@@ -103,3 +104,13 @@ for (const [value, expected] of [
         assert.equal(isPositiveLeadMoney(value), expected);
     });
 }
+
+test('pasted maps texts keep only the first link', () => {
+    assert.equal(
+        mapsLinkFrom(
+            'Motel\n312 Fenton St\nhttps://maps.app.goo.gl/abc?g_st=ic ',
+        ),
+        'https://maps.app.goo.gl/abc?g_st=ic',
+    );
+    assert.equal(mapsLinkFrom('  sem link  '), 'sem link');
+});

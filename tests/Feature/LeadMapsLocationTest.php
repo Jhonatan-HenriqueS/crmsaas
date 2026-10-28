@@ -103,3 +103,40 @@ test('editing other fields keeps a saved short link without resolving it again',
     expect($lead->fresh()->only(['name', 'latitude', 'longitude']))->toBe(['name' => 'Novo nome', 'latitude' => '-10.5000000', 'longitude' => '-61.5000000']);
     Http::assertNothingSent();
 });
+
+test('a lead without a link receives only the maps link and keeps its other fields', function () {
+    $own = Membership::factory()->create();
+    $lead = Lead::factory()->for($own->account)->create(['maps_url' => null, 'latitude' => null, 'longitude' => null]);
+    $url = 'https://www.google.com.br/maps/@-23.5505199,-46.6333094,17z';
+
+    $this->actingAs($own->user)->patch(route('leads.location', ['lead' => $lead, 'page' => 2]), ['maps_url' => $url])
+        ->assertSessionHasNoErrors()->assertRedirect(route('leads.index', ['page' => 2]));
+
+    expect($lead->fresh()->only(['name', 'category_id', 'maps_url', 'latitude', 'longitude']))
+        ->toBe([...$lead->only(['name', 'category_id']), 'maps_url' => $url, 'latitude' => '-23.5505199', 'longitude' => '-46.6333094']);
+});
+
+test('saving only the maps link rejects invalid links, missing links and browser coordinates', function (array $payload, string $field) {
+    $own = Membership::factory()->create();
+    $lead = Lead::factory()->for($own->account)->create(['maps_url' => null, 'latitude' => null, 'longitude' => null]);
+
+    $this->actingAs($own->user)->patchJson(route('leads.location', $lead), $payload)
+        ->assertUnprocessable()->assertJsonValidationErrors($field);
+
+    expect($lead->fresh()->only(['maps_url', 'latitude', 'longitude']))->toBe(['maps_url' => null, 'latitude' => null, 'longitude' => null]);
+    Http::assertNothingSent();
+})->with([
+    'outside the allowlist' => [['maps_url' => 'https://evil.example/maps/@1,2'], 'maps_url'],
+    'not a link' => [['maps_url' => 'texto qualquer'], 'maps_url'],
+    'missing' => [['maps_url' => ''], 'maps_url'],
+    'coordinates from the browser' => [['maps_url' => 'https://maps.google.com/?q=1,2', 'latitude' => '5'], 'form'],
+]);
+
+test('the maps link of another account lead cannot be changed', function () {
+    $own = Membership::factory()->create();
+    $foreign = Lead::factory()->create(['maps_url' => null, 'latitude' => null, 'longitude' => null]);
+
+    $this->actingAs($own->user)->patch(route('leads.location', $foreign), ['maps_url' => 'https://maps.google.com/?q=1,2'])->assertNotFound();
+
+    expect($foreign->fresh()->maps_url)->toBeNull();
+});

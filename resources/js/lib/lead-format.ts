@@ -66,6 +66,13 @@ export function categoryColor(value: string): string {
     return /^#[0-9a-f]{6}$/i.test(value) ? value : '#6d54b5';
 }
 
+/** Shared texts carry the place name before the link; keep only the first link. */
+export function mapsLinkFrom(text: string): string {
+    const value = text.trim();
+
+    return value.match(/https?:\/\/\S+/i)?.[0] ?? value;
+}
+
 export const leadInputClass =
     'h-11 rounded-xl border-white/10 bg-secondary/60 text-base transition-[background-color,border-color,box-shadow] focus-visible:border-ring/40 focus-visible:bg-accent/70 focus-visible:shadow-[0_0_18px_#bca6ec1a] focus-visible:ring-0';
 export const leadCreateClass =

@@ -65,17 +65,23 @@ class StoreLeadRequest extends FormRequest
             'next_contact_date' => ['bail', 'nullable', 'string', 'date_format:Y-m-d'],
             'potential_amount' => ['bail', 'nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
             'charged_amount' => ['bail', 'nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
-            'maps_url' => [
-                'bail', 'nullable', 'string', 'max:2048', 'url:http,https',
-                static function (string $attribute, mixed $value, Closure $fail): void {
-                    if (! ParseGoogleMapsLink::allows($value)) {
-                        $fail('Use um link do Google Maps (google.com, google.com.br, goo.gl ou maps.app.goo.gl).');
-                    }
-                },
-            ],
+            'maps_url' => $this->mapsUrlRules(),
             'confirm_completion' => ['sometimes', 'boolean'],
             'confirm_reopening' => ['sometimes', 'boolean'],
             'category' => ['bail', 'sometimes', 'required', 'integer', 'min:1', 'max:'.PHP_INT_MAX],
+        ];
+    }
+
+    /** @return list<mixed> */
+    protected function mapsUrlRules(): array
+    {
+        return [
+            'bail', 'nullable', 'string', 'max:2048', 'url:http,https',
+            static function (string $attribute, mixed $value, Closure $fail): void {
+                if (! ParseGoogleMapsLink::allows($value)) {
+                    $fail('Use um link do Google Maps (google.com, google.com.br, goo.gl ou maps.app.goo.gl).');
+                }
+            },
         ];
     }
 

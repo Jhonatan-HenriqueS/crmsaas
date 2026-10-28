@@ -14,6 +14,7 @@ Route::middleware(['auth', 'verified', ResolveCurrentAccount::class])->group(fun
     Route::post('leads', [LeadController::class, 'store'])->name('leads.store');
     Route::get('leads/etapas', [LeadController::class, 'categoryOptions'])->name('leads.category-options');
     Route::post('leads/{lead}/complete', [LeadController::class, 'complete'])->whereNumber('lead')->name('leads.complete');
+    Route::patch('leads/{lead}/location', [LeadController::class, 'location'])->whereNumber('lead')->name('leads.location');
     Route::patch('leads/{lead}', [LeadController::class, 'update'])->whereNumber('lead')->name('leads.update');
     Route::delete('leads/{lead}', [LeadController::class, 'destroy'])->whereNumber('lead')->name('leads.destroy');
     Route::get('categorias', [LeadCategoryController::class, 'index'])->name('categories.index');
