@@ -35,7 +35,7 @@ class LeadController extends Controller
         }
 
         $leads = $query
-            ->paginate(12, ['id', 'category_id', 'name', 'description', 'first_contact_date', 'next_contact_date', 'potential_amount', 'charged_amount']);
+            ->paginate(12, ['id', 'category_id', 'name', 'description', 'first_contact_date', 'next_contact_date', 'potential_amount', 'charged_amount', 'maps_url', 'latitude', 'longitude']);
 
         if ($leads->currentPage() > $leads->lastPage()) {
             return to_route('leads.index', array_filter(['page' => $leads->lastPage(), 'category' => $selectedCategory?->id]));
@@ -95,7 +95,7 @@ class LeadController extends Controller
     public function store(StoreLeadRequest $request, CurrentAccount $currentAccount, SaveLead $saveLead): RedirectResponse|JsonResponse
     {
         $selectedCategory = $this->selectedCategory($request, $currentAccount->get());
-        $lead = $saveLead->handle($currentAccount->get(), $request->safe()->except(['confirm_completion', 'confirm_reopening', 'category']),
+        $lead = $saveLead->handle($currentAccount->get(), [...$request->safe()->except(['confirm_completion', 'confirm_reopening', 'category']), ...$request->mapsLocation()],
             confirmCompletion: $request->boolean('confirm_completion'));
 
         if ($request->wantsJson()) {
@@ -110,7 +110,7 @@ class LeadController extends Controller
     public function update(MutateLeadRequest $request, CurrentAccount $currentAccount, SaveLead $saveLead): RedirectResponse
     {
         $selectedCategory = $this->selectedCategory($request, $currentAccount->get());
-        $lead = $saveLead->handle($currentAccount->get(), $request->safe()->except(['page', 'confirm_completion', 'confirm_reopening', 'category']),
+        $lead = $saveLead->handle($currentAccount->get(), [...$request->safe()->except(['page', 'confirm_completion', 'confirm_reopening', 'category']), ...$request->mapsLocation()],
             $request->lead(), $request->boolean('confirm_completion'), $request->boolean('confirm_reopening'));
 
         if ($lead->wasChanged()) {

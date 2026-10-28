@@ -266,6 +266,8 @@ test('deleting an account removes only its own categories and leads', function (
 test('additive migrations and their rollback preserve preexisting categories and color uniqueness', function () {
     $leads = require database_path('migrations/2026_10_17_012836_create_leads_table.php');
     $unique = require database_path('migrations/2026_10_17_012835_add_account_category_unique_key_to_lead_categories_table.php');
+    $mapsLocation = require database_path('migrations/2026_10_28_005604_add_maps_location_to_leads_table.php');
+    $mapsLocation->down();
     $leads->down();
     $unique->down();
     $category = LeadCategory::factory()->create(['color' => '#112233']);
@@ -273,12 +275,14 @@ test('additive migrations and their rollback preserve preexisting categories and
 
     $unique->up();
     $leads->up();
+    $mapsLocation->up();
     $lead = Lead::factory()->for($category->account)->for($category, 'category')->create();
 
     expect($category->fresh()->getRawOriginal())->toBe($before);
     $this->assertModelExists($lead);
     expect(DB::select('PRAGMA foreign_key_check'))->toBe([]);
 
+    $mapsLocation->down();
     $leads->down();
     $unique->down();
 

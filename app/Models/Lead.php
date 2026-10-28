@@ -21,8 +21,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $next_contact_date
  * @property string|null $potential_amount
  * @property string|null $charged_amount
+ * @property string|null $maps_url
+ * @property string|null $latitude
+ * @property string|null $longitude
  */
-#[Fillable(['category_id', 'name', 'description', 'first_contact_date', 'next_contact_date', 'potential_amount', 'charged_amount'])]
+#[Fillable(['category_id', 'name', 'description', 'first_contact_date', 'next_contact_date', 'potential_amount', 'charged_amount', 'maps_url', 'latitude', 'longitude'])]
 #[Hidden(['account_id'])]
 class Lead extends Model
 {
@@ -35,6 +38,9 @@ class Lead extends Model
         'next_contact_date' => null,
         'potential_amount' => null,
         'charged_amount' => null,
+        'maps_url' => null,
+        'latitude' => null,
+        'longitude' => null,
     ];
 
     /** @return BelongsTo<Account, $this> */
@@ -57,6 +63,8 @@ class Lead extends Model
             'next_contact_date' => 'immutable_date:Y-m-d',
             'potential_amount' => 'decimal:2',
             'charged_amount' => 'decimal:2',
+            'latitude' => 'decimal:7',
+            'longitude' => 'decimal:7',
         ];
     }
 

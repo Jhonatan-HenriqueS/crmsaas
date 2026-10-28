@@ -10,6 +10,9 @@ export type Lead = {
     next_contact_date: string | null;
     potential_amount: string | null;
     charged_amount: string | null;
+    maps_url: string | null;
+    latitude: string | null;
+    longitude: string | null;
 };
 
 export type LeadPage = {

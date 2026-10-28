@@ -1,5 +1,5 @@
 import { router, useForm, usePage } from '@inertiajs/react';
-import { LoaderCircle, Pencil, Plus } from 'lucide-react';
+import { ClipboardPaste, LoaderCircle, Pencil, Plus } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { toast } from 'sonner';
@@ -37,6 +37,7 @@ type LeadForm = {
     next_contact_date: string;
     potential_amount: string;
     charged_amount: string;
+    maps_url: string;
 };
 
 const emptyForm: LeadForm = {
@@ -47,6 +48,7 @@ const emptyForm: LeadForm = {
     next_contact_date: '',
     potential_amount: '',
     charged_amount: '',
+    maps_url: '',
 };
 
 type LeadDialogProps =
@@ -66,6 +68,7 @@ export function CreateLeadDialog(props: LeadDialogProps) {
                   props.lead.potential_amount,
               ),
               charged_amount: formatLeadMoneyInput(props.lead.charged_amount),
+              maps_url: props.lead.maps_url ?? '',
           }
         : emptyForm;
     const { selectedCategory } = usePage<{
@@ -94,6 +97,18 @@ export function CreateLeadDialog(props: LeadDialogProps) {
             setTransition(null);
         }
         setOpen(next);
+    }
+
+    async function pasteMapsUrl() {
+        try {
+            form.setData(
+                'maps_url',
+                (await navigator.clipboard.readText()).trim(),
+            );
+            form.clearErrors('maps_url');
+        } catch {
+            return;
+        }
     }
 
     function submit(event: FormEvent<HTMLFormElement>) {
@@ -136,6 +151,7 @@ export function CreateLeadDialog(props: LeadDialogProps) {
             ...data,
             description: data.description.trim() || null,
             next_contact_date: data.next_contact_date || null,
+            maps_url: data.maps_url.trim() || null,
             potential_amount: potential,
             charged_amount: charged,
             confirm_completion: confirmation === 'complete',
@@ -330,6 +346,52 @@ export function CreateLeadDialog(props: LeadDialogProps) {
                         <InputError
                             id="lead-category-error"
                             message={form.errors.category_id}
+                            className="text-[#ffb4c0]"
+                        />
+                    </div>
+                    <div className="space-y-2.5">
+                        <Label htmlFor="lead-maps-url">
+                            Link do Google Maps{' '}
+                            <span className="text-xs font-normal text-muted-foreground">
+                                (opcional)
+                            </span>
+                        </Label>
+                        <div className="relative">
+                            <Input
+                                id="lead-maps-url"
+                                name="maps_url"
+                                inputMode="url"
+                                autoComplete="off"
+                                maxLength={2048}
+                                value={form.data.maps_url}
+                                onChange={(e) =>
+                                    form.setData('maps_url', e.target.value)
+                                }
+                                disabled={form.processing}
+                                placeholder="https://maps.app.goo.gl/..."
+                                aria-invalid={!!form.errors.maps_url}
+                                aria-describedby="lead-maps-url-error"
+                                className={`${leadInputClass} pr-14`}
+                            />
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={pasteMapsUrl}
+                                disabled={form.processing}
+                                aria-label="Colar link do Google Maps"
+                                title="Colar link"
+                                className="absolute top-1/2 right-1.5 size-8 -translate-y-1/2 rounded-lg border-white/10 bg-white/[0.06] text-muted-foreground hover:bg-primary/15 hover:text-foreground"
+                            >
+                                <ClipboardPaste
+                                    className="size-3.5"
+                                    aria-hidden="true"
+                                />
+                            </Button>
+                        </div>
+                        <InputError
+                            id="lead-maps-url-error"
+                            message={form.errors.maps_url}
                             className="text-[#ffb4c0]"
                         />
                     </div>

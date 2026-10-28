@@ -27,6 +27,11 @@ class MutateLeadRequest extends StoreLeadRequest
             ->leads()->whereKey($id)->firstOrFail();
     }
 
+    protected function currentLead(): Lead
+    {
+        return $this->lead();
+    }
+
     /** @return array<string, ValidationRule|array<mixed>|string> */
     public function rules(): array
     {

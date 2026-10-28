@@ -2,6 +2,7 @@ import { Banknote, CalendarDays, Clock3, Wallet } from 'lucide-react';
 import { dashboardCardClass } from '@/components/dashboard/dashboard-data';
 import { CreateLeadDialog } from '@/components/leads/create-lead-dialog';
 import { DeleteLeadDialog } from '@/components/leads/delete-lead-dialog';
+import { LeadMapDialog } from '@/components/leads/lead-map-dialog';
 import { CompleteLeadDialog } from '@/components/leads/complete-lead-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -58,6 +59,18 @@ export function LeadCard({
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1.5">
                         <div className="flex gap-1.5">
+                            {lead.maps_url &&
+                                lead.latitude !== null &&
+                                lead.longitude !== null && (
+                                    <LeadMapDialog
+                                        name={lead.name}
+                                        mapsUrl={lead.maps_url}
+                                        position={[
+                                            Number(lead.latitude),
+                                            Number(lead.longitude),
+                                        ]}
+                                    />
+                                )}
                             <CreateLeadDialog
                                 mode="edit"
                                 lead={lead}

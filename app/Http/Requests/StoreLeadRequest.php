@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Actions\ParseGoogleMapsLink;
 use App\Http\CurrentAccount;
 use App\Models\Lead;
 use App\Models\LeadCategory;
@@ -15,6 +16,9 @@ use Illuminate\Validation\Validator;
 
 class StoreLeadRequest extends FormRequest
 {
+    /** @var array{latitude: string|null, longitude: string|null}|null */
+    private ?array $mapsLocation = null;
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -25,10 +29,10 @@ class StoreLeadRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        foreach (['name', 'description'] as $field) {
+        foreach (['name', 'description', 'maps_url'] as $field) {
             if (is_string($this->input($field))) {
                 $value = Str::trim($this->input($field));
-                $this->merge([$field => $field === 'description' && $value === '' ? null : $value]);
+                $this->merge([$field => $field !== 'name' && $value === '' ? null : $value]);
             }
         }
     }
@@ -57,6 +61,14 @@ class StoreLeadRequest extends FormRequest
             'next_contact_date' => ['bail', 'nullable', 'string', 'date_format:Y-m-d'],
             'potential_amount' => ['bail', 'nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
             'charged_amount' => ['bail', 'nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999.99'],
+            'maps_url' => [
+                'bail', 'nullable', 'string', 'max:2048', 'url:http,https',
+                static function (string $attribute, mixed $value, Closure $fail): void {
+                    if (! ParseGoogleMapsLink::allows($value)) {
+                        $fail('Use um link do Google Maps (google.com, google.com.br, goo.gl ou maps.app.goo.gl).');
+                    }
+                },
+            ],
             'confirm_completion' => ['sometimes', 'boolean'],
             'confirm_reopening' => ['sometimes', 'boolean'],
             'category' => ['bail', 'sometimes', 'required', 'integer', 'min:1', 'max:'.PHP_INT_MAX],
@@ -77,7 +89,32 @@ class StoreLeadRequest extends FormRequest
                 && strcmp($this->input('next_contact_date'), $this->input('first_contact_date')) < 0) {
                 $validator->errors()->add('next_contact_date', 'A data do próximo contato não pode ser anterior à data do primeiro contato.');
             }
+
+            if ($validator->errors()->isNotEmpty() || ! $this->has('maps_url')) {
+                return;
+            }
+            $url = $this->input('maps_url');
+            $lead = $this->currentLead();
+            $this->mapsLocation = match (true) {
+                ! is_string($url) => ['latitude' => null, 'longitude' => null],
+                $lead !== null && $lead->maps_url === $url && $lead->latitude !== null => ['latitude' => $lead->latitude, 'longitude' => $lead->longitude],
+                default => app(ParseGoogleMapsLink::class)->handle($url),
+            };
+            if ($this->mapsLocation === null) {
+                $validator->errors()->add('maps_url', 'Não foi possível localizar a posição. Abra o local no Google Maps, toque em Compartilhar e cole o link copiado.');
+            }
         }];
+    }
+
+    /** @return array{latitude?: string|null, longitude?: string|null} */
+    public function mapsLocation(): array
+    {
+        return $this->mapsLocation ?? [];
+    }
+
+    protected function currentLead(): ?Lead
+    {
+        return null;
     }
 
     /** @return array<string, string> */
@@ -113,6 +150,9 @@ class StoreLeadRequest extends FormRequest
             'charged_amount.decimal' => 'O valor cobrado deve ter no máximo duas casas decimais.',
             'charged_amount.min' => 'O valor cobrado não pode ser negativo.',
             'charged_amount.max' => 'O valor cobrado não pode exceder 9999999999.99.',
+            'maps_url.string' => 'Informe um link válido do Google Maps.',
+            'maps_url.max' => 'O link do Google Maps deve ter no máximo 2048 caracteres.',
+            'maps_url.url' => 'Informe um link válido do Google Maps.',
         ];
     }
 }
