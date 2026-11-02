@@ -44,8 +44,12 @@ export function DashboardMetrics({
     newLeads: DashboardNewLeads;
 }) {
     const [loading, setLoading] = useState(false);
+    const [categoryId, setCategoryId] = useState('all');
     const pending = useRef(false);
     const period = newLeads.period;
+    const category = data.categories.find(
+        (option) => String(option.id) === categoryId,
+    );
 
     function selectPeriod(value: DashboardPeriod) {
         if (pending.current || value === period) return;
@@ -71,17 +75,50 @@ export function DashboardMetrics({
     )?.label;
     const metrics = [
         {
-            title: 'Total de leads',
-            value: formatCount(data.totalLeads),
-            label: 'Visão geral da base',
+            title: category
+                ? `Total de leads em "${category.name}"`
+                : 'Total de leads',
+            value: formatCount(category ? category.count : data.totalLeads),
+            label: category
+                ? `${formatPercentage(category.percentage)} do total de leads`
+                : 'Visão geral da base',
             icon: Users,
+            truncate: true,
+            menu: {
+                heading: 'Categoria',
+                ariaLabel: 'Filtrar por categoria',
+                value: category ? String(category.id) : 'all',
+                options: [
+                    { value: 'all', label: 'Todos' },
+                    ...data.categories.map((option) => ({
+                        value: String(option.id),
+                        label: option.name,
+                    })),
+                ],
+                onValueChange: setCategoryId,
+            },
         },
         {
             title: 'Novos leads',
             value: formatCount(newLeads.count),
             label: periodLabel,
             icon: ScanLine,
-            editable: true,
+            menu: {
+                heading: 'Período de exibição',
+                ariaLabel: 'Alterar período dos novos leads',
+                value: period,
+                options: dashboardPeriods,
+                disabled: loading,
+                onValueChange: (value: string) => {
+                    if (
+                        dashboardPeriods.some(
+                            (option) => option.value === value,
+                        )
+                    ) {
+                        selectPeriod(value as DashboardPeriod);
+                    }
+                },
+            },
         },
         {
             title: 'Meta',
@@ -119,64 +156,19 @@ export function DashboardMetrics({
                 >
                     <CardContent className="@container p-5 sm:p-6">
                         <div className="flex min-h-8 items-start justify-between gap-2">
-                            <h2 className="pt-1 text-xs font-medium text-muted-foreground">
+                            <h2
+                                className={cn(
+                                    'pt-1 text-xs font-medium text-muted-foreground',
+                                    metric.truncate && 'min-w-0 truncate',
+                                )}
+                                title={
+                                    metric.truncate ? metric.title : undefined
+                                }
+                            >
                                 {metric.title}
                             </h2>
-                            {metric.editable ? (
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            className={dashboardEditButtonClass}
-                                            disabled={loading}
-                                            aria-busy={loading}
-                                            aria-label="Alterar período dos novos leads"
-                                        >
-                                            <Pencil
-                                                className="size-4"
-                                                aria-hidden="true"
-                                            />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent
-                                        align="end"
-                                        sideOffset={8}
-                                        className="dashboard-theme w-52 rounded-xl border-white/10 bg-popover p-2 text-foreground shadow-xl"
-                                    >
-                                        <DropdownMenuLabel className="px-2 py-2 text-xs text-muted-foreground">
-                                            Período de exibição
-                                        </DropdownMenuLabel>
-                                        <DropdownMenuSeparator className="bg-white/[0.06]" />
-                                        <DropdownMenuRadioGroup
-                                            value={period}
-                                            onValueChange={(value) => {
-                                                if (
-                                                    dashboardPeriods.some(
-                                                        (option) =>
-                                                            option.value ===
-                                                            value,
-                                                    )
-                                                ) {
-                                                    selectPeriod(
-                                                        value as DashboardPeriod,
-                                                    );
-                                                }
-                                            }}
-                                        >
-                                            {dashboardPeriods.map((option) => (
-                                                <DropdownMenuRadioItem
-                                                    key={option.value}
-                                                    value={option.value}
-                                                    className="min-h-10 cursor-pointer rounded-lg text-xs focus:bg-primary/20 data-[state=checked]:text-[#d3c2f7]"
-                                                >
-                                                    {option.label}
-                                                </DropdownMenuRadioItem>
-                                            ))}
-                                        </DropdownMenuRadioGroup>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                            {metric.menu ? (
+                                <MetricSelectMenu {...metric.menu} />
                             ) : metric.goal ? (
                                 <DashboardGoalDialog data={data} />
                             ) : (
@@ -198,7 +190,7 @@ export function DashboardMetrics({
                                 metric.green && 'text-[var(--dashboard-green)]',
                             )}
                             aria-live={
-                                metric.editable || metric.goal
+                                metric.menu || metric.goal
                                     ? 'polite'
                                     : undefined
                             }
@@ -223,5 +215,64 @@ export function DashboardMetrics({
                 </Card>
             ))}
         </section>
+    );
+}
+
+function MetricSelectMenu({
+    heading,
+    ariaLabel,
+    value,
+    options,
+    disabled = false,
+    onValueChange,
+}: {
+    heading: string;
+    ariaLabel: string;
+    value: string;
+    options: { value: string; label: string }[];
+    disabled?: boolean;
+    onValueChange: (value: string) => void;
+}) {
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={dashboardEditButtonClass}
+                    disabled={disabled}
+                    aria-busy={disabled}
+                    aria-label={ariaLabel}
+                >
+                    <Pencil className="size-4" aria-hidden="true" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+                align="end"
+                sideOffset={8}
+                className="dashboard-theme w-52 rounded-xl border-white/10 bg-popover p-2 text-foreground shadow-xl"
+            >
+                <DropdownMenuLabel className="px-2 py-2 text-xs text-muted-foreground">
+                    {heading}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-white/[0.06]" />
+                <DropdownMenuRadioGroup
+                    value={value}
+                    onValueChange={onValueChange}
+                    className="max-h-64 overflow-y-auto"
+                >
+                    {options.map((option) => (
+                        <DropdownMenuRadioItem
+                            key={option.value}
+                            value={option.value}
+                            className="min-h-10 cursor-pointer rounded-lg text-xs [overflow-wrap:anywhere] focus:bg-primary/20 data-[state=checked]:text-[#d3c2f7]"
+                        >
+                            {option.label}
+                        </DropdownMenuRadioItem>
+                    ))}
+                </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 }
