@@ -5,6 +5,7 @@ export type Lead = {
     category_id: number;
     category: LeadCategory;
     name: string;
+    company_name: string | null;
     description: string | null;
     first_contact_date: string;
     next_contact_date: string | null;

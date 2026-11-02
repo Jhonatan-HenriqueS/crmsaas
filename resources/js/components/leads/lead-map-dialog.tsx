@@ -12,7 +12,7 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { mapsLinkFrom } from '@/lib/lead-format';
+import { leadDisplayName, mapsLinkFrom } from '@/lib/lead-format';
 import { location } from '@/routes/leads';
 import type { Lead } from '@/types/lead';
 import type { LeadCategory } from '@/types/lead-category';
@@ -36,6 +36,7 @@ export function LeadMapDialog({ lead, page }: { lead: Lead; page: number }) {
         lead.latitude !== null &&
         lead.longitude !== null;
     const fieldId = `lead-${lead.id}-maps-url`;
+    const displayName = leadDisplayName(lead.company_name, lead.name);
 
     function save(value: string) {
         const link = value.trim();
@@ -88,7 +89,7 @@ export function LeadMapDialog({ lead, page }: { lead: Lead; page: number }) {
                     type="button"
                     variant="outline"
                     size="icon"
-                    aria-label={`Ver localização de ${lead.name}`}
+                    aria-label={`Ver localização de ${displayName}`}
                     title="Ver no mapa"
                     className="size-9 rounded-xl border-white/10 bg-white/[0.02] text-muted-foreground hover:bg-primary/15 hover:text-foreground"
                 >
@@ -105,7 +106,7 @@ export function LeadMapDialog({ lead, page }: { lead: Lead; page: number }) {
                 <DialogHeader className="flex-row flex-wrap items-center justify-between gap-3 pr-8 text-left">
                     <div className="min-w-0 space-y-1">
                         <DialogTitle className="text-xl font-semibold tracking-tight [overflow-wrap:anywhere]">
-                            {lead.name}
+                            {displayName}
                         </DialogTitle>
                         <DialogDescription className="text-sm">
                             Localização do lead

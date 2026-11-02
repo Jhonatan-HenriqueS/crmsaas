@@ -24,6 +24,7 @@ import {
     leadInputClass,
     formatLeadMoneyInput,
     isPositiveLeadMoney,
+    leadDisplayName,
     parseLeadMoney,
 } from '@/lib/lead-format';
 import { leadTransition } from '@/lib/lead-transition';
@@ -34,6 +35,7 @@ import type { LeadCategory } from '@/types/lead-category';
 
 type LeadForm = {
     name: string;
+    company_name: string;
     description: string;
     category_id: string;
     first_contact_date: string;
@@ -45,6 +47,7 @@ type LeadForm = {
 
 const emptyForm: LeadForm = {
     name: '',
+    company_name: '',
     description: '',
     category_id: '',
     first_contact_date: '',
@@ -63,6 +66,7 @@ export function CreateLeadDialog(props: LeadDialogProps) {
     const initialData: LeadForm = editing
         ? {
               name: props.lead.name,
+              company_name: props.lead.company_name ?? '',
               description: props.lead.description ?? '',
               category_id: String(props.lead.category_id),
               first_contact_date: props.lead.first_contact_date,
@@ -147,6 +151,7 @@ export function CreateLeadDialog(props: LeadDialogProps) {
         setRequestError(undefined);
         form.transform((data) => ({
             ...data,
+            company_name: data.company_name.trim() || null,
             description: data.description.trim() || null,
             next_contact_date: data.next_contact_date || null,
             maps_url: data.maps_url.trim() || null,
@@ -220,7 +225,7 @@ export function CreateLeadDialog(props: LeadDialogProps) {
                         variant="outline"
                         size="icon"
                         disabled={form.processing}
-                        aria-label={`Editar ${props.lead.name}`}
+                        aria-label={`Editar ${leadDisplayName(props.lead.company_name, props.lead.name)}`}
                         title="Editar lead"
                         className="size-9 rounded-xl border-white/10 bg-white/[0.02] text-muted-foreground hover:bg-primary/15 hover:text-foreground"
                     >
@@ -267,6 +272,34 @@ export function CreateLeadDialog(props: LeadDialogProps) {
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={submit} className="space-y-5">
+                    <div className="space-y-2.5">
+                        <Label htmlFor="lead-company-name">
+                            Empresa{' '}
+                            <span className="text-xs font-normal text-muted-foreground">
+                                (opcional)
+                            </span>
+                        </Label>
+                        <Input
+                            id="lead-company-name"
+                            name="company_name"
+                            value={form.data.company_name}
+                            onChange={(e) =>
+                                form.setData('company_name', e.target.value)
+                            }
+                            maxLength={120}
+                            disabled={form.processing}
+                            autoComplete="off"
+                            placeholder="Ex.: Clínica Horizonte"
+                            aria-invalid={!!form.errors.company_name}
+                            aria-describedby="lead-company-name-error"
+                            className={leadInputClass}
+                        />
+                        <InputError
+                            id="lead-company-name-error"
+                            message={form.errors.company_name}
+                            className="text-[#ffb4c0]"
+                        />
+                    </div>
                     <div className="space-y-2.5">
                         <Label htmlFor="lead-name">
                             Nome do lead{' '}
@@ -501,7 +534,10 @@ export function CreateLeadDialog(props: LeadDialogProps) {
                     onOpenChange={(next) => {
                         if (!next && !submitting.current) setTransition(null);
                     }}
-                    leadName={form.data.name}
+                    leadName={leadDisplayName(
+                        form.data.company_name,
+                        form.data.name,
+                    )}
                     categoryName={selected?.name ?? ''}
                     transition={transition ?? 'complete'}
                     processing={form.processing}

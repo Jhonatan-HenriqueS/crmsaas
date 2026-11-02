@@ -4,7 +4,11 @@ import { useRef, useState } from 'react';
 import { LeadMoneyField } from '@/components/leads/lead-money-field';
 import { SaleTransitionDialog } from '@/components/leads/sale-transition-dialog';
 import { Button } from '@/components/ui/button';
-import { isPositiveLeadMoney, parseLeadMoney } from '@/lib/lead-format';
+import {
+    isPositiveLeadMoney,
+    leadDisplayName,
+    parseLeadMoney,
+} from '@/lib/lead-format';
 import { complete } from '@/routes/leads';
 import type { Lead } from '@/types/lead';
 import type { LeadCategory } from '@/types/lead-category';
@@ -26,6 +30,7 @@ export function CompleteLeadDialog({
     const submitting = useRef(false);
     const form = useForm({ confirm_completion: true, charged_amount: '' });
     const completed = lead.category.is_sale_completed;
+    const displayName = leadDisplayName(lead.company_name, lead.name);
     const requiresAmount = !isPositiveLeadMoney(lead.charged_amount);
     const chargedAmount = parseLeadMoney(form.data.charged_amount);
     const { charged_amount: amountError, ...otherErrors } = form.errors;
@@ -78,8 +83,8 @@ export function CompleteLeadDialog({
                 disabled={completed || !category}
                 aria-label={
                     completed
-                        ? `Lead finalizado: ${lead.name}`
-                        : `Finalizar ${lead.name}`
+                        ? `Lead finalizado: ${displayName}`
+                        : `Finalizar ${displayName}`
                 }
                 onClick={() => {
                     form.reset();
@@ -99,7 +104,7 @@ export function CompleteLeadDialog({
                 onOpenChange={(next) => {
                     if (!submitting.current) setOpen(next);
                 }}
-                leadName={lead.name}
+                leadName={displayName}
                 categoryName={category?.name ?? ''}
                 transition="complete"
                 processing={form.processing}

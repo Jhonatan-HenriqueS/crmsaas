@@ -267,6 +267,8 @@ test('additive migrations and their rollback preserve preexisting categories and
     $leads = require database_path('migrations/2026_10_17_012836_create_leads_table.php');
     $unique = require database_path('migrations/2026_10_17_012835_add_account_category_unique_key_to_lead_categories_table.php');
     $mapsLocation = require database_path('migrations/2026_10_28_005604_add_maps_location_to_leads_table.php');
+    $companyName = require database_path('migrations/2026_11_02_170713_add_company_name_to_leads_table.php');
+    $companyName->down();
     $mapsLocation->down();
     $leads->down();
     $unique->down();
@@ -276,12 +278,14 @@ test('additive migrations and their rollback preserve preexisting categories and
     $unique->up();
     $leads->up();
     $mapsLocation->up();
+    $companyName->up();
     $lead = Lead::factory()->for($category->account)->for($category, 'category')->create();
 
     expect($category->fresh()->getRawOriginal())->toBe($before);
     $this->assertModelExists($lead);
     expect(DB::select('PRAGMA foreign_key_check'))->toBe([]);
 
+    $companyName->down();
     $mapsLocation->down();
     $leads->down();
     $unique->down();

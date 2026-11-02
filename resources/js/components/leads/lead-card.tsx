@@ -11,6 +11,7 @@ import {
     contactDeadline,
     formatLeadDate,
     formatLeadMoney,
+    leadDisplayName,
 } from '@/lib/lead-format';
 import type { Lead } from '@/types/lead';
 import type { LeadCategory } from '@/types/lead-category';
@@ -38,7 +39,7 @@ export function LeadCard({
                 <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 space-y-3">
                         <h2 className="text-base leading-snug font-semibold tracking-tight [overflow-wrap:anywhere]">
-                            {lead.name}
+                            {leadDisplayName(lead.company_name, lead.name)}
                         </h2>
                         <Badge
                             className="max-w-full gap-2 rounded-full px-3 py-1.5 text-xs font-medium text-foreground"

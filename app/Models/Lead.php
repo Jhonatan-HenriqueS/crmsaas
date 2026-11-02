@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $account_id
  * @property int $category_id
  * @property string $name
+ * @property string|null $company_name
  * @property string|null $description
  * @property CarbonImmutable $first_contact_date
  * @property CarbonImmutable|null $next_contact_date
@@ -25,7 +26,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $latitude
  * @property string|null $longitude
  */
-#[Fillable(['category_id', 'name', 'description', 'first_contact_date', 'next_contact_date', 'potential_amount', 'charged_amount', 'maps_url', 'latitude', 'longitude'])]
+#[Fillable(['category_id', 'name', 'company_name', 'description', 'first_contact_date', 'next_contact_date', 'potential_amount', 'charged_amount', 'maps_url', 'latitude', 'longitude'])]
 #[Hidden(['account_id'])]
 class Lead extends Model
 {
@@ -34,6 +35,7 @@ class Lead extends Model
 
     /** @var array<string, mixed> */
     protected $attributes = [
+        'company_name' => null,
         'description' => null,
         'next_contact_date' => null,
         'potential_amount' => null,

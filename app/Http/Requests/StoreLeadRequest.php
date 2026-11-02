@@ -29,7 +29,7 @@ class StoreLeadRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        foreach (['name', 'description', 'maps_url'] as $field) {
+        foreach (['name', 'company_name', 'description', 'maps_url'] as $field) {
             if (is_string($this->input($field))) {
                 $value = Str::trim($this->input($field));
                 $this->merge([$field => $field !== 'name' && $value === '' ? null : $value]);
@@ -50,6 +50,7 @@ class StoreLeadRequest extends FormRequest
     {
         return [
             'name' => ['bail', 'required', 'string', 'max:120', 'regex:/\A[^\p{C}]+\z/u'],
+            'company_name' => ['bail', 'nullable', 'string', 'max:120', 'regex:/\A[^\p{C}]+\z/u'],
             'description' => ['bail', 'nullable', 'string', 'max:5000', 'regex:/\A(?:[^\p{C}]|[\r\n\t])*\z/u'],
             'category_id' => [
                 'bail', 'required',
@@ -140,6 +141,9 @@ class StoreLeadRequest extends FormRequest
             'name.string' => 'Informe um nome válido para o lead.',
             'name.max' => 'O nome do lead deve ter no máximo 120 caracteres.',
             'name.regex' => 'O nome do lead contém caracteres inválidos.',
+            'company_name.string' => 'Informe um nome de empresa válido.',
+            'company_name.max' => 'O nome da empresa deve ter no máximo 120 caracteres.',
+            'company_name.regex' => 'O nome da empresa contém caracteres inválidos.',
             'description.string' => 'Informe uma descrição válida para o lead.',
             'description.max' => 'A descrição deve ter no máximo 5000 caracteres.',
             'description.regex' => 'A descrição contém caracteres inválidos.',

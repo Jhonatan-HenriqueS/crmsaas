@@ -18,12 +18,15 @@
     - **Seções 1–9**: como o sistema **está hoje** (verificado no código em 2026-10-27).
     - **Seção 10**: o que o documento de arquitetura exige e **o que falta** (gap analysis).
     - **Seção 12 (Anexo)**: **especificação-alvo viva** (nascida do PDF "Arquitetura e Segurança do
-      CRM SaaS em Laravel"). Dúvida sobre "como deveria ser": **o anexo manda**. Sobre "como está":
+      CRM SaaS em Laravel"), hoje em `docs/arquitetura-alvo.md`. Dúvida sobre "como deveria ser": **o anexo manda**. Sobre "como está":
       **o código manda**. Divergência entre os dois: corrigir este CLAUDE.md.
     - **Seção 14**: pendências, decisões e próximos passos (retomar daqui).
     - **Seção 0.6**: retomada, documentação e encerramento.
 4. Abrir código só quando precisar do detalhe exato. Mapa na seção 3.
 5. Ao iniciar a sessão, ler 14.1 e 14.3 antes de agir (ver 14.6).
+6. Ler `docs/arquitetura-alvo.md` (Anexo) sempre que a tarefa envolver arquitetura, segurança,
+   planos, agência/empresa, cookies/sessão, campanhas, PWA ou escala, ou antes de alterar qualquer
+   item da seção 10.
 
 ### 0.2 Regras invioláveis de arquitetura e segurança
 
@@ -58,7 +61,7 @@
 
 - Não alterar processos funcionais existentes do CRM (leads, categorias, finalização, dashboard, auth).
 - Não adicionar/remover dependências (composer/npm).
-- Não criar novas pastas-base nem documentação extra (além deste arquivo).
+- Não criar novas pastas-base nem documentação extra (além deste arquivo e de `docs/arquitetura-alvo.md`, ver 12).
 - Não remover testes.
 - Não enfraquecer nenhuma barreira da seção 7 (rate limit, CSRF, policies, validação, FKs).
 
@@ -70,12 +73,14 @@ decisão arquitetural), o Claude **DEVE** atualizar **dentro deste CLAUDE.md**, 
 1. Seções afetadas: 3 (mapa), 4 (banco), 5 (rotas), 6 (fluxos), 7 (segurança), 8 (env).
 2. Matrizes da seção 10: status (❌ → 🟡 → ✅) e **critérios do MVP (10.3)**.
 3. Seção 11: remover/ajustar itens resolvidos, incluir novos riscos.
-4. **O Anexo (seção 12) é a especificação-alvo VIVA.** Atualize-o na mesma tarefa sempre que uma
+4. **O Anexo (seção 12) é a especificação-alvo VIVA**, editado em `docs/arquitetura-alvo.md`.
+   Atualize-o na mesma tarefa sempre que uma
    implementação, decisão ou pedido do usuário mudar a arquitetura-alvo: edite o trecho no lugar
-   (sem duplicar), marque a mudança com [atualizado AAAA-MM-DD] e registre no changelog.
+   (sem duplicar), marque a mudança com [atualizado AAAA-MM-DD] e registre no changelog (seção 13 deste CLAUDE.md).
 5. Changelog (seção 13): uma linha com data absoluta (AAAA-MM-DD), resumo e hash do commit base
    (`git rev-parse --short HEAD` no momento da edição, formato `base abc1234`).
-6. Nunca criar arquivo separado para isso.
+6. Nunca criar arquivo separado para isso. Única exceção, autorizada pelo dono em 2026-10-30: o
+   Anexo em `docs/arquitetura-alvo.md` (ver 12).
 7. Ao terminar a tarefa, informar no chat, em 2–3 linhas, quais seções do CLAUDE.md foram atualizadas.
 8. **Um fato, um lugar.** Antes de escrever algo novo, procurar se o fato já existe. Se existir,
    editar ali. Em outros pontos, só referência curta ("ver 7", "ver 11.1").
@@ -86,11 +91,16 @@ decisão arquitetural), o Claude **DEVE** atualizar **dentro deste CLAUDE.md**, 
     explícito do usuário. O arquivo pode crescer o quanto o projeto exigir. Ao fim da tarefa, se ele
     cresceu muito (mais de 15% desde a última medição registrada em 14.4), apenas informar o `wc -w`
     no chat. Quem decide qualquer redução é o usuário.
+    Política de tamanho (limite do Claude Code: 150k caracteres; acima disso o arquivo não é
+    carregado inteiro): medir com `wc -m` no fim de cada tarefa e informar no chat. Passou de
+    **140k caracteres**: avisar o dono e propor mover seções inteiras para `docs/` (cópia byte a
+    byte, sem apagar); nunca cortar por conta própria.
 11. **O contexto nunca é sacrificado.** Proibido apagar fato, regra, decisão, status de matriz,
     ferramenta (atual, parcial ou futura), rota, arquivo, coluna, comando ou critério do MVP por
     qualquer motivo, inclusive tamanho. Corrigir informação errada é permitido (registrar no
     changelog); apagar informação verdadeira, não. A regra "um fato, um lugar" (item 8) vale para
-    NOVAS informações; não autoriza remover repetições já existentes.
+    NOVAS informações; não autoriza remover repetições já existentes. Mover seção inteira para
+    `docs/` (com pedido do dono) não é apagar: o conteúdo continua íntegro no arquivo de destino.
 12. Manter o aviso do topo e o estilo telegráfico em português do Brasil.
 13. **Seção 14 (memória entre sessões)**: atualizar ao fim de TODA tarefa e antes de encerrar a
     sessão (pendências, decisões, próximos passos), seguindo as regras em 14.6.
@@ -247,27 +257,27 @@ S3, Sanctum, PWA. Ver 10.
 
 ### 3.3 Frontend (`resources/js/`)
 
-| Caminho                                                                                                    | Conteúdo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `app.tsx`                                                                                                  | `createInertiaApp`; sem layout: welcome, auth/register, auth/login, dashboard, categories/index, leads/index; `auth/*` → AuthLayout; `settings/*` → AppLayout+SettingsLayout.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `pages/welcome.tsx`                                                                                        | Home + planos (`components/home-plan-card.tsx`, `lib/home-plans.ts`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `pages/auth/*`                                                                                             | login, register (plano + termos), forgot/reset password, verify-email, two-factor-challenge, confirm-password.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `pages/dashboard.tsx` + `components/dashboard/*`                                                           | `dashboard-metrics` (4 cards; 3º card "Meta" (substituiu "Em acompanhamento"): destaque = `goalRemaining` (pode ser negativo, ex. "-R$ 2.500,00"), secundário "Meta: R$ X · até dd/mm/aaaa"; sem meta: "Sem meta" + "Nenhuma meta definida · use o botão de editar"; botão `Pencil` = `dashboardEditButtonClass` (o mesmo do card "Novos leads"), abre `dashboard-goal-dialog` (LeadMoneyField, ToggleGroup "Em dias"/"Até a data", input de data igual ao do lead, Cancelar/Salvar meta, "Remover meta" se houver meta; `only: ['overview']` + `preserveUrl`); mesma fonte `clamp` do card vendidos (`fit`); "Leads vendidos" destaca `soldRevenue` via `formatLeadMoney`, texto secundário "N% do total de leads · N lead(s) vendido(s)", valor em `var(--dashboard-green)` (mesmo verde do ícone check), fonte `clamp(1.25rem,11.5cqw,2.1rem)` com `@container` para caber em 320px), `dashboard-charts` (barras semanais + donut por categoria, Recharts), `dashboard-records` (placeholder "Em breve"), `dashboard-sidebar` (menu Dashboard / Categorias / Leads), `dashboard-data.ts` (tipos e formatadores).                                                                                                                      |
-| `pages/leads/index.tsx` + `components/leads/*`                                                             | `create-lead-dialog` (criar/editar), `lead-card`, `lead-category-filter`, `lead-category-selector` (cursor paginado), `complete-lead-dialog` (sem valor cobrado salvo > 0: input "Valor cobrado" obrigatório no modal, "Confirmar venda" desabilitado até valor > 0), `sale-transition-dialog` (confirmar finalização/reabertura; aceita `children` e `confirmDisabled`), `lead-money-field` (input BRL compartilhado: form de lead e modal de finalização), `delete-lead-dialog`, `lead-map-dialog` (botão `MapPin` em **todo** card; com lat/lng: modal com "Abrir no Google Maps" + `lead-map` via `lazy`; sem lat/lng: estado de cadastro no centro com `LeadMapsUrlField`, envia ao colar (botão ou Ctrl+V), Enter ou blur para `leads.location` com `only: ['leads']`, `LoaderCircle` + campo desabilitado durante envio, erro do servidor no campo, mapa carrega no mesmo modal), `lead-maps-url-field` (input do link + botão colar + erro; compartilhado entre form de lead e modal do mapa), `lead-map` (react-leaflet: OSM, marcador, `invalidateSize()` ao fim da animação, `isolate`). Form tem "Link do Google Maps" (`LeadMapsUrlField`) com botão `ClipboardPaste` (`navigator.clipboard.readText()`, falha silenciosa). |
-| `pages/categories/index.tsx` + `components/categories/*`                                                   | `category-card`, `category-dialog` (criar/editar, color picker `react-colorful`), `delete-category-dialog` (mostra impacto, envia `confirmation`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `pages/settings/*`                                                                                         | profile, security (senha + 2FA), appearance.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `lib/lead-format.ts`                                                                                       | Datas civis, prazo do próximo contato ("Hoje", "Atrasado há N dias"), parse/format BRL sem float (`formatLeadMoney` aceita negativo: `-R$ 0,01`), `categoryColor()` (sanitiza cor antes do CSS), `mapsLinkFrom()` (texto colado → 1º link `http(s)://`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `lib/lead-transition.ts`                                                                                   | Decide se mudança de categoria é `complete`/`reopen` **pelo `is_sale_completed` do servidor**, nunca por nome/cor.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `hooks/use-flash-toast.ts`, `use-lead-category-options.ts`, `use-two-factor-auth.ts`, `use-appearance.tsx` | Hooks.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `actions/`, `routes/`, `wayfinder/`                                                                        | **Gerados pelo Wayfinder** — não editar à mão.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `components/ui/*`                                                                                          | shadcn/Radix — não lintado/formatado.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Caminho                                                                                                    | Conteúdo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app.tsx`                                                                                                  | `createInertiaApp`; sem layout: welcome, auth/register, auth/login, dashboard, categories/index, leads/index; `auth/*` → AuthLayout; `settings/*` → AppLayout+SettingsLayout.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `pages/welcome.tsx`                                                                                        | Home + planos (`components/home-plan-card.tsx`, `lib/home-plans.ts`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `pages/auth/*`                                                                                             | login, register (plano + termos), forgot/reset password, verify-email, two-factor-challenge, confirm-password.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `pages/dashboard.tsx` + `components/dashboard/*`                                                           | `dashboard-metrics` (4 cards; 3º card "Meta" (substituiu "Em acompanhamento"): destaque = `goalRemaining` (pode ser negativo, ex. "-R$ 2.500,00"), secundário "Meta: R$ X · até dd/mm/aaaa"; sem meta: "Sem meta" + "Nenhuma meta definida · use o botão de editar"; botão `Pencil` = `dashboardEditButtonClass` (o mesmo do card "Novos leads"), abre `dashboard-goal-dialog` (LeadMoneyField, ToggleGroup "Em dias"/"Até a data", input de data igual ao do lead, Cancelar/Salvar meta, "Remover meta" se houver meta; `only: ['overview']` + `preserveUrl`); mesma fonte `clamp` do card vendidos (`fit`); "Leads vendidos" destaca `soldRevenue` via `formatLeadMoney`, texto secundário "N% do total de leads · N lead(s) vendido(s)", valor em `var(--dashboard-green)` (mesmo verde do ícone check), fonte `clamp(1.25rem,11.5cqw,2.1rem)` com `@container` para caber em 320px), `dashboard-charts` (barras semanais + donut por categoria, Recharts; overlay "Total de leads" do centro da rosca vem **antes** do `ResponsiveContainer` no DOM para o tooltip `bg-popover` (absoluto, sem z-index) pintar por cima), `dashboard-records` (placeholder "Em breve"), `dashboard-sidebar` (menu Dashboard / Categorias / Leads), `dashboard-data.ts` (tipos e formatadores).                      |
+| `pages/leads/index.tsx` + `components/leads/*`                                                             | `create-lead-dialog` (criar/editar), `lead-card`, `lead-category-filter`, `lead-category-selector` (cursor paginado), `complete-lead-dialog` (sem valor cobrado salvo > 0: input "Valor cobrado" obrigatório no modal, "Confirmar venda" desabilitado até valor > 0), `sale-transition-dialog` (confirmar finalização/reabertura; aceita `children` e `confirmDisabled`), `lead-money-field` (input BRL compartilhado: form de lead e modal de finalização), form de lead com "Empresa" (opcional) acima de "Nome do lead", `delete-lead-dialog`, `lead-map-dialog` (botão `MapPin` em **todo** card; com lat/lng: modal com "Abrir no Google Maps" + `lead-map` via `lazy`; sem lat/lng: estado de cadastro no centro com `LeadMapsUrlField`, envia ao colar (botão ou Ctrl+V), Enter ou blur para `leads.location` com `only: ['leads']`, `LoaderCircle` + campo desabilitado durante envio, erro do servidor no campo, mapa carrega no mesmo modal), `lead-maps-url-field` (input do link + botão colar + erro; compartilhado entre form de lead e modal do mapa), `lead-map` (react-leaflet: OSM, marcador, `invalidateSize()` ao fim da animação, `isolate`). Form tem "Link do Google Maps" (`LeadMapsUrlField`) com botão `ClipboardPaste` (`navigator.clipboard.readText()`, falha silenciosa). |
+| `pages/categories/index.tsx` + `components/categories/*`                                                   | `category-card`, `category-dialog` (criar/editar, color picker `react-colorful`), `delete-category-dialog` (mostra impacto, envia `confirmation`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `pages/settings/*`                                                                                         | profile, security (senha + 2FA), appearance.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `lib/lead-format.ts`                                                                                       | Datas civis, prazo do próximo contato ("Hoje", "Atrasado há N dias"), parse/format BRL sem float (`formatLeadMoney` aceita negativo: `-R$ 0,01`), `categoryColor()` (sanitiza cor antes do CSS), `mapsLinkFrom()` (texto colado → 1º link `http(s)://`), `leadDisplayName()` (nome exibido, ver 6.4).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `lib/lead-transition.ts`                                                                                   | Decide se mudança de categoria é `complete`/`reopen` **pelo `is_sale_completed` do servidor**, nunca por nome/cor.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `hooks/use-flash-toast.ts`, `use-lead-category-options.ts`, `use-two-factor-auth.ts`, `use-appearance.tsx` | Hooks.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `actions/`, `routes/`, `wayfinder/`                                                                        | **Gerados pelo Wayfinder** — não editar à mão.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `components/ui/*`                                                                                          | shadcn/Radix — não lintado/formatado.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 ### 3.4 Testes (`tests/`)
 
 Padrão: ~336 testes Pest em `Feature` com `RefreshDatabase`; factories com estados (`Account::factory()->agency()`,
 `User::factory()->withTwoFactor()`, `->unverified()`); JS em `.test.mjs` (`lead-format`, `lead-transition`).
 Temas/arquivos: tenancy (`AccountAuthorizationTest`, `CurrentAccountTest`, `TenantFoundationTest`); leads
-(`LeadFoundationTest`, `LeadMutationTest`, `LeadIntegrityTest`, `LeadPageTest`, `LeadMapsLocationTest` (com `Http::fake`/`preventStrayRequests`; inclui `leads.location`: grava link, 422 em link inválido/ausente/coords do browser, 404 em lead de outra conta)); categorias
+(`LeadFoundationTest` (inclui `company_name`), `LeadMutationTest`, `LeadIntegrityTest`, `LeadPageTest`, `LeadMapsLocationTest` (com `Http::fake`/`preventStrayRequests`; inclui `leads.location`: grava link, 422 em link inválido/ausente/coords do browser, 404 em lead de outra conta)); categorias
 (`LeadCategory*Test`, `CategoryDeletion*Test`, `SystemLeadCategoryTest`); venda (`SaleCompletion*Test`,
 `SaleMetricsTest`); dashboard (`Dashboard*Test`, incl. `DashboardTest`, `DashboardMetricsTest` (inclui meta: definir/editar/remover, 422, dias → data, restante exato/negativo, isolamento))); sessão
 (`LogoutSecurityTest`, `SessionReplayTest`); registro (`RegistrationSecurityTest`, `RegistrationCsrfTest`);
@@ -285,14 +295,14 @@ sessions (database)                    └────────────�
 password_reset_tokens · cache · cache_locks · jobs · job_batches · failed_jobs
 ```
 
-| Tabela            | Colunas                                                                                                                                                                                                                                                                                                   | Restrições                                                                                                                                           |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `users`           | id, name, email (unique), email_verified_at, password (hash), two_factor_secret, two_factor_recovery_codes, two_factor_confirmed_at, remember_token, timestamps                                                                                                                                           | segredos 2FA criptografados pelo Fortify; `#[Hidden]`                                                                                                |
-| `accounts`        | id, `type enum('empresa','agencia')`, name nullable, goal_amount decimal(12,2) null, goal_deadline date null, timestamps                                                                                                                                                                                  | —                                                                                                                                                    |
-| `memberships`     | id, user_id FK cascade, account_id FK cascade, `role enum('owner')`, timestamps                                                                                                                                                                                                                           | unique(user_id, account_id)                                                                                                                          |
-| `lead_categories` | id, account_id FK cascade, name(120), color(7), system_key(32) nullable, timestamps                                                                                                                                                                                                                       | unique(account_id, color); unique(account_id, id); unique(account_id, system_key); index(account_id, id)                                             |
-| `leads`           | id, account_id FK cascade, category_id, name(120), description text null, first_contact_date date, next_contact_date date null, potential_amount decimal(12,2) null, charged_amount decimal(12,2) null, maps_url string(2048) null, latitude decimal(10,7) null, longitude decimal(10,7) null, timestamps | **FK composta (account_id, category_id) → lead_categories(account_id, id) ON DELETE CASCADE**; index(account_id, id); index(category_id, account_id) |
-| `sessions`        | id, user_id, ip_address, user_agent, payload, last_activity                                                                                                                                                                                                                                               | driver `database`                                                                                                                                    |
+| Tabela            | Colunas                                                                                                                                                                                                                                                                                                                                  | Restrições                                                                                                                                           |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `users`           | id, name, email (unique), email_verified_at, password (hash), two_factor_secret, two_factor_recovery_codes, two_factor_confirmed_at, remember_token, timestamps                                                                                                                                                                          | segredos 2FA criptografados pelo Fortify; `#[Hidden]`                                                                                                |
+| `accounts`        | id, `type enum('empresa','agencia')`, name nullable, goal_amount decimal(12,2) null, goal_deadline date null, timestamps                                                                                                                                                                                                                 | —                                                                                                                                                    |
+| `memberships`     | id, user_id FK cascade, account_id FK cascade, `role enum('owner')`, timestamps                                                                                                                                                                                                                                                          | unique(user_id, account_id)                                                                                                                          |
+| `lead_categories` | id, account_id FK cascade, name(120), color(7), system_key(32) nullable, timestamps                                                                                                                                                                                                                                                      | unique(account_id, color); unique(account_id, id); unique(account_id, system_key); index(account_id, id)                                             |
+| `leads`           | id, account_id FK cascade, category_id, name(120), company_name string(120) null, description text null, first_contact_date date, next_contact_date date null, potential_amount decimal(12,2) null, charged_amount decimal(12,2) null, maps_url string(2048) null, latitude decimal(10,7) null, longitude decimal(10,7) null, timestamps | **FK composta (account_id, category_id) → lead_categories(account_id, id) ON DELETE CASCADE**; index(account_id, id); index(category_id, account_id) |
+| `sessions`        | id, user_id, ip_address, user_agent, payload, last_activity                                                                                                                                                                                                                                                                              | driver `database`                                                                                                                                    |
 
 Cascatas: excluir **categoria** apaga seus leads; **conta** apaga categorias, leads e memberships;
 **usuário** apaga memberships (UI bloqueia se último owner).
@@ -381,7 +391,7 @@ Rate limits de todos os fluxos: ver 7.
 
 ### 6.4 Leads
 
-Campos: `name` (obrigatório, ≤120), `description` (≤5000, opcional), `category_id` (obrigatório,
+Campos: `name` (obrigatório, ≤120), `company_name` (opcional, ≤120, trim, sem caracteres de controle, `''` → null; gravado como digitado), `description` (≤5000, opcional), `category_id` (obrigatório,
 existe **na conta**), `first_contact_date` (obrigatória, `Y-m-d`), `next_contact_date` (opcional,
 ≥ primeiro contato), `potential_amount` e `charged_amount` (opcionais, 0–9.999.999.999,99, 2 casas),
 `maps_url` (opcional, trim, `''` → null, texto colado com nome + link vira só o 1º `http(s)://` (servidor e botão colar), `url:http,https`, ≤2048, host na allowlist de `ParseGoogleMapsLink`).
@@ -411,6 +421,7 @@ Nulo continua nulo (não vira zero).
   check mostra input só se o lead não tem valor > 0 (`isPositiveLeadMoney`, sem float).
 - Excluir: remove só o lead (categoria permanece), preserva página/filtro no redirect.
 - Frontend: BRL convertido para string decimal sem float; prazo do próximo contato relativo à data local.
+- Nome exibido: `leadDisplayName(company_name, name)` (`lib/lead-format.ts`) devolve `EMPRESA - Nome` (empresa em `toLocaleUpperCase('pt-BR')`, preserva acentos) ou só o nome. Usado no título do card, título/aria do modal do mapa, título/aria da exclusão, aria do botão finalizar e editar, e no diálogo de transição (finalizar/reabrir). Form de edição mostra os dois campos separados. Sem busca de texto na lista (só filtro por categoria).
 
 ### 6.5 Configurações
 
@@ -500,62 +511,62 @@ Legenda: ✅ implementado · 🟡 parcial/divergente · ❌ não implementado
 
 ### 10.1 Arquitetura e produto
 
-| Item do documento                                                                              | Status | Observação                                                                                                                                                                                                             |
-| ---------------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Laravel 13 + Inertia/React/TS                                                                  | ✅     |                                                                                                                                                                                                                        |
-| PHP 8.4/8.5                                                                                    | 🟡     | PHP 8.3 (ver 2).                                                                                                                                                                                                       |
-| PostgreSQL 18.6+                                                                               | 🟡     | Ver 2 e 11.9. Migrations compiladas para PG testadas sem servidor.                                                                                                                                                     |
-| Redis para sessão/cache/rate limit                                                             | ❌     | Tudo em `database` (ver 2; plano em 10.2).                                                                                                                                                                             |
-| Fortify (login, registro, reset, verificação, 2FA)                                             | ✅     |                                                                                                                                                                                                                        |
-| Sanctum para API/mobile                                                                        | ❌     | Não instalado (OK para MVP web).                                                                                                                                                                                       |
-| S3 privado                                                                                     | ❌     | Sem uploads.                                                                                                                                                                                                           |
-| Queue + Redis/Horizon                                                                          | 🟡     | Fila `database`; nenhum job de domínio.                                                                                                                                                                                |
-| Infra CloudFront/WAF/ALB/RDS                                                                   | ❌     | Deploy em container (Render).                                                                                                                                                                                          |
-| PWA (manifest/service worker)                                                                  | ❌     | Sem `manifest.webmanifest`.                                                                                                                                                                                            |
-| Capacitor                                                                                      | ❌     | Futuro.                                                                                                                                                                                                                |
-| Fluxo HOME → PLANO → CHECKOUT SIMULADO → CADASTRO                                              | 🟡     | Home e plano ✅; **checkout simulado/ordem no servidor não existe** (ver 11.2).                                                                                                                                        |
-| Tenancy por `account_id` (USER → membership → ACCOUNT)                                         | ✅     |                                                                                                                                                                                                                        |
-| Múltiplas contas por usuário / slug de contexto                                                | ❌     | Ver 11.4.                                                                                                                                                                                                              |
-| `users`                                                                                        | ✅     |                                                                                                                                                                                                                        |
-| `accounts`                                                                                     | ✅     | `type empresa                                                                                                                                                                                                          | agencia`. |
-| `memberships`                                                                                  | 🟡     | Só `role=owner`; sem papéis de colaborador.                                                                                                                                                                            |
-| `plans/subscriptions`                                                                          | ❌     |                                                                                                                                                                                                                        |
-| `lead_categories`                                                                              | ✅     | + categoria de sistema "Finalizado".                                                                                                                                                                                   |
-| `leads`                                                                                        | 🟡     | Atuais em 4. **Faltam**: `client_id`, `phone`, `website`, `instagram`, `quoted_amount` (≈ potential_amount), `tool_cost`, `status` (hoje status = categoria). Extra implementado: `maps_url` + `latitude`/`longitude`. |
-| `clients`                                                                                      | ❌     |                                                                                                                                                                                                                        |
-| `campaigns` / `campaign_metrics` (histórico)                                                   | ❌     |                                                                                                                                                                                                                        |
-| `agency_links` / `access_grants` / `invitations`                                               | ❌     |                                                                                                                                                                                                                        |
-| `attachments`                                                                                  | ❌     |                                                                                                                                                                                                                        |
-| `audit_logs`                                                                                   | ❌     |                                                                                                                                                                                                                        |
-| RLS PostgreSQL (2ª barreira)                                                                   | ❌     | Opcional no documento; hoje 2ª barreira = FK composta.                                                                                                                                                                 |
-| Policies em todos os recursos                                                                  | ✅     | Account e Lead; categorias via AccountPolicy.                                                                                                                                                                          |
-| `PATCH /leads/ABC` passa por sessão → membership → lead da conta → policy → validação → UPDATE | ✅     |                                                                                                                                                                                                                        |
-| `/dashboard` sem user_id na rota                                                               | ✅     |                                                                                                                                                                                                                        |
-| Data minimization                                                                              | ✅     |                                                                                                                                                                                                                        |
-| Dashboard: donut por categoria                                                                 | ✅     |                                                                                                                                                                                                                        |
-| Dashboard: campanhas ativas, receita, investimento, ferramentas, resultado, margem             | 🟡     | Faturamento de leads finalizados (`soldRevenue`) no card "Leads vendidos" + card "Meta" (restante); demais dependem de campanhas.                                                                                      |
-| Cookie Secure/HttpOnly/SameSite, sem token em localStorage                                     | ✅     |                                                                                                                                                                                                                        |
-| CSRF                                                                                           | ✅     |                                                                                                                                                                                                                        |
-| Senha mínimo 15 sem MFA (ou 8 com 2FA obrigatório), sem regras de composição, bloquear vazadas | 🟡     | Ver 11.1.                                                                                                                                                                                                              |
-| Hash bcrypt/Argon2id                                                                           | ✅     | Argon2id.                                                                                                                                                                                                              |
-| Criptografia em repouso/TLS no banco/rede privada/IAM                                          | ❌     | Depende da infra; nada no código (ex.: `sslmode`).                                                                                                                                                                     |
-| Criptografia de campo seletiva                                                                 | 🟡     | Só segredos 2FA (Fortify) e tokens de confirmação; correto para MVP segundo o documento.                                                                                                                               |
-| Validação tripla (front, back, constraints)                                                    | ✅     |                                                                                                                                                                                                                        |
-| Bloqueio de mass assignment de campos de autoridade                                            | ✅     |                                                                                                                                                                                                                        |
-| Deslogado → /login; 401 API; 403 ação conhecida; 404 tenant alheio                             | ✅     |                                                                                                                                                                                                                        |
-| Logout: logout → invalidate → regenerate CSRF → redirect                                       | ✅     |                                                                                                                                                                                                                        |
-| Convites Agência↔Empresa com aceite/recusa, grants granulares, revogação                       | ❌     | Plano em 10.2.                                                                                                                                                                                                         |
-| Pipeline de print/OCR com revisão humana                                                       | ❌     | Plano em 10.2.                                                                                                                                                                                                         |
-| Meta Marketing API                                                                             | ❌     |                                                                                                                                                                                                                        |
-| App stateless (sessão fora do servidor)                                                        | 🟡     | Sessão no banco já compartilhável entre instâncias; Redis recomendado.                                                                                                                                                 |
-| Docker sem segredos, usuário não privilegiado                                                  | ✅     | Roda como `www-data`; `.dockerignore` exclui `.env`, `.git`, `node_modules`, `vendor`, `tests`, logs e `public/build`.                                                                                                 |
-| LGPD: aviso de privacidade, retenção, acesso, cookies, incidentes                              | 🟡     | Só checkbox de Termos no cadastro.                                                                                                                                                                                     |
-| Backup e restore testado                                                                       | ❌     |                                                                                                                                                                                                                        |
-| Observabilidade                                                                                | ❌     |                                                                                                                                                                                                                        |
+| Item do documento                                                                              | Status | Observação                                                                                                                                                                                                                                                                                    |
+| ---------------------------------------------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Laravel 13 + Inertia/React/TS                                                                  | ✅     |                                                                                                                                                                                                                                                                                               |
+| PHP 8.4/8.5                                                                                    | 🟡     | PHP 8.3 (ver 2).                                                                                                                                                                                                                                                                              |
+| PostgreSQL 18.6+                                                                               | 🟡     | Ver 2 e 11.9. Migrations compiladas para PG testadas sem servidor.                                                                                                                                                                                                                            |
+| Redis para sessão/cache/rate limit                                                             | ❌     | Tudo em `database` (ver 2; plano em 10.2).                                                                                                                                                                                                                                                    |
+| Fortify (login, registro, reset, verificação, 2FA)                                             | ✅     |                                                                                                                                                                                                                                                                                               |
+| Sanctum para API/mobile                                                                        | ❌     | Não instalado (OK para MVP web).                                                                                                                                                                                                                                                              |
+| S3 privado                                                                                     | ❌     | Sem uploads.                                                                                                                                                                                                                                                                                  |
+| Queue + Redis/Horizon                                                                          | 🟡     | Fila `database`; nenhum job de domínio.                                                                                                                                                                                                                                                       |
+| Infra CloudFront/WAF/ALB/RDS                                                                   | ❌     | Deploy em container (Render).                                                                                                                                                                                                                                                                 |
+| PWA (manifest/service worker)                                                                  | ❌     | Sem `manifest.webmanifest`.                                                                                                                                                                                                                                                                   |
+| Capacitor                                                                                      | ❌     | Futuro.                                                                                                                                                                                                                                                                                       |
+| Fluxo HOME → PLANO → CHECKOUT SIMULADO → CADASTRO                                              | 🟡     | Home e plano ✅; **checkout simulado/ordem no servidor não existe** (ver 11.2).                                                                                                                                                                                                               |
+| Tenancy por `account_id` (USER → membership → ACCOUNT)                                         | ✅     |                                                                                                                                                                                                                                                                                               |
+| Múltiplas contas por usuário / slug de contexto                                                | ❌     | Ver 11.4.                                                                                                                                                                                                                                                                                     |
+| `users`                                                                                        | ✅     |                                                                                                                                                                                                                                                                                               |
+| `accounts`                                                                                     | ✅     | `type empresa                                                                                                                                                                                                                                                                                 | agencia`. |
+| `memberships`                                                                                  | 🟡     | Só `role=owner`; sem papéis de colaborador.                                                                                                                                                                                                                                                   |
+| `plans/subscriptions`                                                                          | ❌     |                                                                                                                                                                                                                                                                                               |
+| `lead_categories`                                                                              | ✅     | + categoria de sistema "Finalizado".                                                                                                                                                                                                                                                          |
+| `leads`                                                                                        | 🟡     | Atuais em 4 (inclui `company_name`, nome da empresa em texto livre, sem `clients`). **Faltam**: `client_id`, `phone`, `website`, `instagram`, `quoted_amount` (≈ potential_amount), `tool_cost`, `status` (hoje status = categoria). Extra implementado: `maps_url` + `latitude`/`longitude`. |
+| `clients`                                                                                      | ❌     |                                                                                                                                                                                                                                                                                               |
+| `campaigns` / `campaign_metrics` (histórico)                                                   | ❌     |                                                                                                                                                                                                                                                                                               |
+| `agency_links` / `access_grants` / `invitations`                                               | ❌     |                                                                                                                                                                                                                                                                                               |
+| `attachments`                                                                                  | ❌     |                                                                                                                                                                                                                                                                                               |
+| `audit_logs`                                                                                   | ❌     |                                                                                                                                                                                                                                                                                               |
+| RLS PostgreSQL (2ª barreira)                                                                   | ❌     | Opcional no documento; hoje 2ª barreira = FK composta.                                                                                                                                                                                                                                        |
+| Policies em todos os recursos                                                                  | ✅     | Account e Lead; categorias via AccountPolicy.                                                                                                                                                                                                                                                 |
+| `PATCH /leads/ABC` passa por sessão → membership → lead da conta → policy → validação → UPDATE | ✅     |                                                                                                                                                                                                                                                                                               |
+| `/dashboard` sem user_id na rota                                                               | ✅     |                                                                                                                                                                                                                                                                                               |
+| Data minimization                                                                              | ✅     |                                                                                                                                                                                                                                                                                               |
+| Dashboard: donut por categoria                                                                 | ✅     |                                                                                                                                                                                                                                                                                               |
+| Dashboard: campanhas ativas, receita, investimento, ferramentas, resultado, margem             | 🟡     | Faturamento de leads finalizados (`soldRevenue`) no card "Leads vendidos" + card "Meta" (restante); demais dependem de campanhas.                                                                                                                                                             |
+| Cookie Secure/HttpOnly/SameSite, sem token em localStorage                                     | ✅     |                                                                                                                                                                                                                                                                                               |
+| CSRF                                                                                           | ✅     |                                                                                                                                                                                                                                                                                               |
+| Senha mínimo 15 sem MFA (ou 8 com 2FA obrigatório), sem regras de composição, bloquear vazadas | 🟡     | Ver 11.1.                                                                                                                                                                                                                                                                                     |
+| Hash bcrypt/Argon2id                                                                           | ✅     | Argon2id.                                                                                                                                                                                                                                                                                     |
+| Criptografia em repouso/TLS no banco/rede privada/IAM                                          | ❌     | Depende da infra; nada no código (ex.: `sslmode`).                                                                                                                                                                                                                                            |
+| Criptografia de campo seletiva                                                                 | 🟡     | Só segredos 2FA (Fortify) e tokens de confirmação; correto para MVP segundo o documento.                                                                                                                                                                                                      |
+| Validação tripla (front, back, constraints)                                                    | ✅     |                                                                                                                                                                                                                                                                                               |
+| Bloqueio de mass assignment de campos de autoridade                                            | ✅     |                                                                                                                                                                                                                                                                                               |
+| Deslogado → /login; 401 API; 403 ação conhecida; 404 tenant alheio                             | ✅     |                                                                                                                                                                                                                                                                                               |
+| Logout: logout → invalidate → regenerate CSRF → redirect                                       | ✅     |                                                                                                                                                                                                                                                                                               |
+| Convites Agência↔Empresa com aceite/recusa, grants granulares, revogação                       | ❌     | Plano em 10.2.                                                                                                                                                                                                                                                                                |
+| Pipeline de print/OCR com revisão humana                                                       | ❌     | Plano em 10.2.                                                                                                                                                                                                                                                                                |
+| Meta Marketing API                                                                             | ❌     |                                                                                                                                                                                                                                                                                               |
+| App stateless (sessão fora do servidor)                                                        | 🟡     | Sessão no banco já compartilhável entre instâncias; Redis recomendado.                                                                                                                                                                                                                        |
+| Docker sem segredos, usuário não privilegiado                                                  | ✅     | Roda como `www-data`; `.dockerignore` exclui `.env`, `.git`, `node_modules`, `vendor`, `tests`, logs e `public/build`.                                                                                                                                                                        |
+| LGPD: aviso de privacidade, retenção, acesso, cookies, incidentes                              | 🟡     | Só checkbox de Termos no cadastro.                                                                                                                                                                                                                                                            |
+| Backup e restore testado                                                                       | ❌     |                                                                                                                                                                                                                                                                                               |
+| Observabilidade                                                                                | ❌     |                                                                                                                                                                                                                                                                                               |
 
 ### 10.2 Escalabilidade futura (plano; encaixar sem quebrar a arquitetura)
 
-Fluxos e decisões-alvo correspondentes: anexo (12).
+Fluxos e decisões-alvo correspondentes: anexo (12, `docs/arquitetura-alvo.md`).
 
 - **Agência controlando contas de Empresas**: `agency_links(agency_account_id, company_account_id,
 status pending|accepted|revoked)`, `access_grants(link_id, permission ∈ leads.read, leads.write,
@@ -607,7 +618,7 @@ campaigns.read, campaigns.write, categories.write)` e `invitations` (token só p
 
 ## 11. Divergências, riscos e débitos conhecidos (não alterar sem pedido)
 
-1. **Política de senha** diverge do alvo (anexo, "Senha"): registro 8; troca/reset em produção 12 +
+1. **Política de senha** diverge do alvo (anexo `docs/arquitetura-alvo.md`, "Senha"): registro 8; troca/reset em produção 12 +
    composição (alvo desaconselha); inconsistência registro × troca; 2FA não obrigatório. UI do
    registro cita 8 caracteres. Detalhe atual em 7.
 2. **Plano escolhido pelo browser** (`?plan=`) sem ordem/checkout no servidor — hoje inofensivo (sem
@@ -643,663 +654,39 @@ campaigns.read, campaigns.write, categories.write)` e `invitations` (token só p
 
 ## 12. ANEXO — Especificação-alvo (arquitetura e segurança)
 
-> Especificação-alvo viva, nascida do PDF 'Arquitetura e Segurança do CRM SaaS em Laravel' (versão
-> condensada). Em dúvida sobre 'como deveria ser', o anexo manda; sobre 'como está', o código manda.
-> Mantenha atualizado. Plano de implementação dos itens futuros: 10.2. Status: 10.1 e 10.3.
-
-# Arquitetura e Segurança do CRM SaaS em Laravel
-
-## Conclusão executiva
-
-- Base: Laravel com auth por sessão/cookie, CSRF, Policies, PostgreSQL relacional, isolamento dos
-  registros, logout com invalidação da sessão.
-- Estruturar por conta/workspace (`account_id`), não só `user_id`: Empresa com usuários próprios;
-  Agência com acesso controlado à conta da Empresa, sem misturar dados entre clientes.
-- Navegador: sem JWT por login, sem token de auth no JavaScript. Sanctum só para API, SPA separada ou
-  mobile (em SPA first-party, Sanctum também usa cookie de sessão).
-
-Stack-alvo do MVP:
-
-| Camada                   | Escolha                                           |
-| ------------------------ | ------------------------------------------------- |
-| Backend                  | Laravel 13 + PHP 8.4/8.5                          |
-| Frontend                 | Inertia + React + TypeScript                      |
-| Banco                    | PostgreSQL 18.6 ou posterior corrigido            |
-| Sessões/cache/rate limit | Redis                                             |
-| Autenticação web         | Laravel Session + Fortify                         |
-| API/mobile futuro        | Laravel Sanctum                                   |
-| Arquivos/prints          | S3 privado                                        |
-| Jobs/OCR/e-mails         | Laravel Queue + Redis/Horizon                     |
-| Infra futura             | CloudFront + WAF + ALB + containers + RDS + Redis |
-| Web instalável           | PWA                                               |
-| App de loja futuro       | Capacitor, mantendo Laravel como backend          |
-
-- Fortify (Starter Kits Laravel 13): login, registro, recuperação, verificação de e-mail, 2FA + rate
-  limiting oficial.
-- PostgreSQL com RLS: 18.6+ ou versão explicitamente corrigida — CVE-2026-14666 (cache de planos e
-  políticas RLS) afetou versões anteriores; correção em 13 de agosto de 2026.
-  https://www.postgresql.org/support/security/CVE-2026-14666/
-
-> **Decisão central:** navegador identifica o usuário pela sessão; `account_id` define o
-> tenant; Policy define o que ele pode fazer; consulta SQL limita quais registros podem
-> aparecer. Um ID ou URL nunca concede permissão.
-
-## Arquitetura do produto e experiência do usuário
-
-Referência Hostinger (só fluxo): planos separados, destaque de uma opção, CTA objetivo, checkout com resumo.
-
-```
-HOME → PLANO → CHECKOUT SIMULADO → CADASTRO → SESSÃO → DASHBOARD → CRM
-```
-
-### Home e planos
-
-Plano Empresa:
-
-> “Controle sua operação comercial e descubra exatamente onde seus leads e campanhas
-> estão gerando resultado.”
-
-Funções centrais: leads, categorias, funil, campanhas, investimentos, CPL, receita, margem e dashboard.
-
-Plano Agência:
-
-> “Gerencie sua própria operação e acompanhe múltiplos clientes em uma única estrutura.”
-
-Acrescenta: clientes gerenciados, campanhas por cliente, permissões Empresa↔Agência e
-compartilhamento controlado de dados.
-
-Home sem dezenas de funcionalidades: para quem é o plano, o que resolve, preço e CTA.
-
-### Checkout simulado
-
-Mesmo simulado, servidor nunca acredita no frontend enviando:
-
-```
-plan = agency
-success = true
-```
-
-Fluxo correto:
-
-```
-Usuário escolhe plano
-↓
-Backend cria intenção/ordem simulada
-↓
-Checkout mostra dados dessa ordem
-↓
-Usuário finaliza
-↓
-Backend marca a ordem como concluída
-↓
-Servidor libera /register para aquela intenção
-↓
-Conta + workspace + membership são criados
-```
-
-Gateway real depois: troca só o mecanismo de confirmação, não a arquitetura.
-
-### Cadastro e login
-
-Fortify define `GET /login`, `POST /login`, `POST /logout`, registro, recuperação e verificação de
-e-mail. `GET /login` só entrega o formulário. `POST /login` envia credenciais por HTTPS; backend
-verifica senha e inicia/regenera a sessão. Nunca mandar todos os dados da conta ao frontend após login.
-
-```
-POST /login
-↓
-credenciais válidas?
-↓ sim
-regenera session ID
-↓
-cookie de sessão
-↓
-GET /dashboard
-↓
-backend identifica usuário + account
-↓
-consulta SOMENTE dados desse account
-```
-
-## Banco de dados, CRM e isolamento entre contas
-
-### Não use apenas user_id como dono do CRM
-
-```
-users
-leads.user_id
-campaigns.user_id
-```
-
-Funciona para sistema individual; quebra com: Agência com vários colaboradores; Empresa com vários
-funcionários; Agência administrando Empresa; mudança de proprietário; permissões diferentes;
-integração futura com equipes. Hierarquia (conta = fronteira de segurança):
-
-```
-USER
-↓ membership
-ACCOUNT / WORKSPACE
-↓
-LEADS
-CAMPAIGNS
-CATEGORIES
-CLIENTS
-METRICS
-ATTACHMENTS
-```
-
-### Estrutura mínima recomendada
-
-| Entidade            | Função                                 |
-| ------------------- | -------------------------------------- |
-| users               | Pessoa autenticada                     |
-| accounts            | Empresa ou Agência                     |
-| memberships         | Liga usuários às contas e papéis       |
-| plans/subscriptions | Plano e entitlement                    |
-| lead_categories     | Categorias próprias da conta           |
-| leads               | Leads daquela conta                    |
-| clients             | Clientes administrados por Agência     |
-| campaigns           | Campanhas                              |
-| campaign_metrics    | Histórico de métricas                  |
-| agency_links        | Relação aceita Agência↔Empresa         |
-| access_grants       | Permissões desse vínculo               |
-| invitations         | Convites pendentes                     |
-| attachments         | Prints/arquivos                        |
-| audit_logs          | Eventos de segurança/ações importantes |
-
-RLS PostgreSQL: com RLS ativo e nenhuma política permitindo, padrão = negar; mas dono da tabela e
-papéis privilegiados podem contornar. Logo, RLS = segunda barreira, nunca substitui Policies nem
-escopo da aplicação.
-
-### Leads
-
-Lead não vira:
-
-```
-user_123/lead.json
-```
-
-É linha relacional:
-
-```
-lead
-├─ id
-├─ account_id
-├─ client_id?
-├─ category_id
-├─ name
-├─ phone
-├─ website?
-├─ instagram?
-├─ quoted_amount
-├─ charged_amount?
-├─ tool_cost?
-├─ status
-├─ maps_url? / latitude? / longitude?   [atualizado 2026-10-27]
-└─ timestamps
-```
-
-Lead em "Finalizado" exige `charged_amount` > 0; regra no ponto único de escrita, nunca só no front.
-[atualizado 2026-10-27]
-
-Browser não escolhe o proprietário: backend deriva `account_id` da sessão/membership. Policies
-autorizam ver, criar, atualizar e excluir. Tentativa de:
-
-```
-PATCH /leads/ABC
-```
-
-passa por:
-
-```
-Sessão válida?
-↓
-Usuário pertence ao account?
-↓
-Lead pertence ao account?
-↓
-Policy permite update?
-↓
-Payload validado?
-↓
-UPDATE
-```
-
-Conhecer o ID não basta. OWASP IDOR/BOLA: verificar autorização no objeto em cada requisição; UUID no
-lugar de ID numérico só dificulta enumeração, não substitui autorização.
-https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html
-
-### Dashboard
-
-Sem `user_id` na rota. Use:
-
-```
-/dashboard
-```
-
-Backend sabe:
-
-```
-session
-→ user
-→ active membership
-→ account
-→ dados daquele account
-```
-
-Várias contas depois:
-
-```
-/app/minha-empresa/dashboard
-/app/cliente-alfa/dashboard
-```
-
-Slug só indica contexto, nunca prova autorização.
-
-Data minimization (não "nenhum dado no frontend", que impediria o dashboard): backend entrega só
-campos e agregados necessários à tela, nunca registros/propriedades desnecessários. OWASP API1:2023
-(autorização por objeto) e API3:2023 (exposição excessiva/autorização por propriedade) são riscos
-distintos. https://api-security.owasp.org/editions/2023/en/0xa3-broken-object-property-level-authorization/
-
-### Dashboard inicial
-
-| Componente            | Backend calcula                                                                                                |
-| --------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Donut/pizza de leads  | total + count e percentual por categoria                                                                       |
-| Campanhas ativas      | count                                                                                                          |
-| Receita bruta         | soma do período                                                                                                |
-| Investimento em mídia | soma                                                                                                           |
-| Ferramentas           | soma                                                                                                           |
-| Resultado             | receita − mídia − ferramentas                                                                                  |
-| Margem                | resultado ÷ receita × 100                                                                                      |
-| Meta da conta         | restante = meta − faturamento finalizado (pode ser negativo); prazo guardado como data [atualizado 2026-10-28] |
-
-Exemplo:
-
-```
-20 leads
-5 reunião     25%
-5 contrato    25%
-5 vendido     25%
-5 pendente    25%
-```
-
-- Não chamar resultado de “lucro líquido” enquanto impostos, mão de obra e demais custos não forem
-  contemplados; no MVP: resultado da campanha ou margem de contribuição.
-- `campaign_metrics` histórico (append-only), nunca alterar coluna única: preserva valores por dia/
-  semana; permite comparar períodos e auditar alterações.
-
-## Autenticação, cookies, formulários e proteção dos dados
-
-### Cookie e sessão
-
-Credencial persistente = cookie de sessão protegido, nunca token exposto ao JavaScript. OWASP Session
-Management: `Secure`, `HttpOnly`, `SameSite`, HTTPS em toda a sessão, regenerar ID ao mudar nível de
-autenticação, nada de credencial de sessão em `localStorage`. Redis: sessão disponível para qualquer
-container + rate limiter.
-
-```
-COOKIE
-Secure
-HttpOnly
-SameSite
-↓
-SESSION ID
-↓
-Redis
-↓
-user/account no servidor
-```
-
-### CSRF
-
-CSRF não é “token de login”. Token ligado à sessão, verificado em requisições mutáveis; Laravel 13 usa
-também informação de origem do navegador antes da comparação tradicional, quando aplicável.
-
-```
-SESSION COOKIE  = "quem está autenticado"
-CSRF TOKEN      = "esta requisição veio do contexto esperado"
-POLICY          = "esse usuário pode fazer esta ação?"
-```
-
-Os três são necessários.
-
-### Senha
-
-Decisão-alvo (substitui o requisito original de 8), base NIST SP 800-63B
-(https://pages.nist.gov/800-63-4/sp800-63b.html): 15 mínimo quando senha é o único fator; 8 só com
-MFA; sem regras de composição arbitrárias (“uma maiúscula + uma minúscula + símbolo”); bloquear senhas
-comuns/comprometidas. Estado atual: 7; divergência: 11.1.
-
-> mínimo de 15 caracteres sem MFA, permitindo frases-senha.
-
-Ou:
-
-> mínimo de 8 somente quando 2FA estiver sendo exigido.
-
-2FA via Fortify TOTP. Senha é hasheada (bcrypt ou Argon2id), não “criptografada”:
-
-```
-senha original
-↓
-Hash::make()
-↓
-hash irreversível
-↓
-PostgreSQL
-```
-
-Ninguém (você, administrador, dashboard) recupera a senha original.
-
-### E-mail, telefone e dados comerciais
-
-Não “criptografar todos os campos” sem projeto. Camadas do MVP:
-
-```
-HTTPS/TLS em trânsito
-+
-PostgreSQL/RDS criptografado em repouso
-+
-rede privada
-+
-IAM mínimo
-+
-controle Laravel
-+
-logs sem PII desnecessária
-+
-criptografia de campo seletiva
-```
-
-- RDS PostgreSQL: `rds.force_ssl` rejeita conexões sem SSL/TLS.
-- Criptografia de campo do Laravel: valores autenticados (protegidos contra alteração).
-- E-mail de login (unique, pesquisa): criptografia exige desenho adicional; sem criptografia caseira.
-  V1: banco/backup criptografados em repouso, rede privada, autorização rigorosa; field encryption só
-  para campos com necessidade e estratégia de pesquisa definidas.
-
-### Validação do formulário
-
-```
-Frontend
-UX imediata
-↓
-Backend
-autoridade real
-↓
-Database constraints
-última barreira de integridade
-```
-
-Regra de imagem do Laravel não aceita SVG por padrão (só se habilitado). Nunca mass assignment, vindo
-do browser, de:
-
-```
-user_id
-account_id
-role
-is_admin
-owner_id
-permissions
-plan_status
-```
-
-### Comportamento para rotas não autorizadas
-
-Deslogado em `/dashboard` (após login volta à rota pretendida):
-
-```
-→ redireciona para /login
-```
-
-API deslogada:
-
-```
-→ 401
-```
-
-Autenticado sem permissão para ação conhecida:
-
-```
-→ 403
-```
-
-Usuário A tentando recurso privado do tenant B (não revela existência; não substitui autorização):
-
-```
-→ 404
-```
-
-### Logout
-
-```
-Auth::logout()
-↓
-invalidate session
-↓
-regenerate CSRF token
-↓
-redirect
-```
-
-Depois, sessão antiga não abre `/dashboard`.
-
-## Agência, compartilhamento, campanhas e app futuro
-
-### Permissão Agência → Empresa
-
-Modelo GitHub (convite aceito antes de virar colaborador; níveis Read, Triage, Write, Maintain, Admin;
-aceitar e recusar distintos). https://docs.github.com/en/rest/collaborators/invitations
-
-```
-AGÊNCIA
-│
-├── solicita acesso
-↓
-EMPRESA recebe convite
-│
-├── Recusar
-│
-└── Aceitar
-      ↓
-   escolher permissões
-      ↓
-┌──────────────────────────┐
-│ leads.read               │
-│ leads.write              │
-│ campaigns.read           │
-│ campaigns.write          │
-│ categories.write         │
-└──────────────────────────┘
-```
-
-Sem bearer token permanente que “dá acesso à empresa”. Token só comprova/consome o convite; após
-aceite, autorização = dado relacional:
-
-```
-agency_links
-agency_account_id
-company_account_id
-status = accepted
-```
-
-```
-access_grants
-link_id
-permission
-```
-
-Revogação:
-
-```
-status = revoked
-```
-
-Próxima requisição da Agência falha.
-
-### Print da campanha do Facebook
-
-IA nunca grava silenciosamente valores financeiros. AWS Textract extrai texto/formulários/tabelas com
-níveis de confiança. GuardDuty Malware Protection for S3 analisa objetos novos em ambiente isolado e
-gera finding se houver malware. Meta Marketing API/Insights (impressões, cliques, gasto, alcance,
-ações), com autorização do cliente, é a fonte de verdade superior; print = conveniência de entrada.
-
-```
-PRINT
-↓
-validar MIME/tamanho
-↓
-S3 PRIVADO
-↓
-MALWARE SCAN
-↓
-QUEUE
-↓
-OCR / VISÃO
-↓
-JSON estruturado
-↓
-VALIDAÇÃO BACKEND
-↓
-TELA DE REVISÃO
-↓
-USUÁRIO CONFIRMA
-↓
-TRANSACTION
-↓
-campaign_metrics
-```
-
-### PWA e aplicativo futuro
-
-Primeiro lançamento (Web App Manifest + service worker; instalação varia por plataforma/navegador):
-
-```
-Laravel + React
-↓
-responsivo
-↓
-Web App Manifest
-↓
-PWA
-↓
-instalável / adicionar à tela inicial
-```
-
-Depois (Capacitor: Web, iOS, Android; cliente mobile separado usa Sanctum):
-
-```
-        MESMO BACKEND LARAVEL
-                 │
-          ┌──────┴──────┐
-          │             │
-       WEB/PWA    APP iOS/Android
-                        │
-                    Capacitor
-```
-
-**Não precisamos reescrever PostgreSQL, campanhas, leads, Policies ou regras de negócio para criar o
-app.** Troca-se/adiciona-se o cliente; Laravel continua backend.
-
-## Escala, mercado e plano real de execução
-
-- Nenhuma arquitetura garante zero queda/vazamento; defesa em profundidade (CDN/WAF/mitigação DDoS,
-  rate limit, criptografia, observabilidade).
-- MVP não paga infra pesada, mas o código nasce preparado para chegar nela.
-
-Progressão (plano do MVP e além):
-
-| Fase          | O que precisa existir                                       |
-| ------------- | ----------------------------------------------------------- |
-| Fundação      | Laravel, React/Inertia, PostgreSQL, Redis, Docker           |
-| Identidade    | register/login/logout, sessão, CSRF, Fortify, 2FA preparado |
-| Tenancy       | accounts + memberships + Policies                           |
-| CRM           | categorias, leads, funil e CRUD                             |
-| Campanhas     | campanhas + métricas históricas                             |
-| Dashboard     | agregações por account_id                                   |
-| Agência       | convites + grants + revogação                               |
-| Imagens       | S3 + malware scan + OCR + confirmação                       |
-| Produção      | backup, observabilidade, HTTPS, secrets                     |
-| Crescimento   | containers horizontais + managed PostgreSQL/Redis           |
-| Grande escala | CDN/WAF/autoscaling/filas/monitoramento avançado            |
-
-- App stateless fora de Redis/PostgreSQL/S3: novas instâncias sem quebrar sessão. OCR, importação e
-  e-mail em fila (Redis, SQS etc.), fora da requisição HTTP.
-- Docker reproduz ambiente e empacota; não é sistema de segurança. Reduzir privilégios/capabilities,
-  processo não privilegiado, sem segredos na imagem.
-- RLS, se adotado, é cinto adicional; nunca justifica remover camada:
-
-```
-Policy Laravel
-+
-query account-scoped
-+
-PostgreSQL constraints
-+
-opcionalmente RLS
-```
-
-### Critério para liberar o MVP
-
-Primeira versão não sai enquanto estes testes não passarem (situação atual: 10.3). Cada endpoint com
-identificador de objeto verifica autorização de nível de objeto (OWASP API1:2023
-https://api-security.owasp.org/editions/2023/en/0xa1-broken-object-level-authorization/).
-
-| Teste                            | Resultado obrigatório                        |
-| -------------------------------- | -------------------------------------------- |
-| Usuário A lista leads de B       | impossível                                   |
-| Usuário A abre ID/UUID de B      | 404/negado                                   |
-| Usuário A faz PATCH em B         | impossível                                   |
-| Usuário A tenta DELETE em B      | impossível                                   |
-| account_id alterado no request   | ignorado/rejeitado                           |
-| usuário deslogado abre dashboard | login obrigatório                            |
-| cookie/sessão antigo após logout | inválido                                     |
-| POST sem CSRF                    | rejeitado                                    |
-| brute force no login             | rate limited                                 |
-| Agência sem convite aceito       | zero acesso                                  |
-| Agência com read tenta editar    | negado                                       |
-| permissão revogada               | próxima operação negada                      |
-| upload com MIME falso            | rejeitado                                    |
-| arquivo malicioso                | não processado                               |
-| OCR com baixa confiança          | não gravado automaticamente                  |
-| dashboard Empresa A              | zero dado de Empresa B                       |
-| exclusão de lead                 | dependências previstas tratadas em transação |
-| restore do backup                | comprovadamente funcional                    |
-
-LGPD: MVP nasce com aviso de privacidade, finalidade e retenção, mecanismos de acesso, política de
-cookies aplicável e procedimento de incidentes. ANPD (guia de segurança + checklist): incidente com
-risco/dano relevante exige avaliação e comunicação conforme regras da autoridade, prazo de 3 dias
-úteis nos casos comunicáveis.
-https://www.gov.br/anpd/pt-br/centrais-de-conteudo/materiais-educativos-e-publicacoes/guia-orientativo-sobre-seguranca-da-informacao-para-agentes-de-tratamento-de-pequeno-porte
-
-Base aprovada:
-
-> **Laravel 13 + Inertia/React + PostgreSQL + Redis, tenancy por `account_id`, Fortify/
-> session cookies para web, Sanctum preparado para API/mobile, Policies em todos os
-> recursos, nenhuma autoridade vinda de user_id/account_id do frontend,
-> métricas históricas, convites granulares Agência↔Empresa, uploads privados e jobs
-> assíncronos.**
+> O Anexo está em [`docs/arquitetura-alvo.md`](docs/arquitetura-alvo.md) (movido byte a byte em
+> 2026-10-30 pelo limite de 150k caracteres do CLAUDE.md). Continua sendo a especificação-alvo
+> **viva**: em dúvida sobre "como deveria ser", ele manda; sobre "como está", o código manda.
+
+- **Quando ler**: sempre que a tarefa envolver arquitetura, segurança, planos, agência/empresa,
+  cookies/sessão, campanhas, PWA ou escala, ou antes de alterar qualquer item da seção 10.
+- Plano de implementação dos itens futuros: 10.2. Status: 10.1 e 10.3.
+- Edição: regra 0.4 item 4.
 
 ---
 
 ## 13. Changelog deste arquivo
 
-| Data       | Mudança                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-10-27 | Criação do CLAUDE.md: instruções para o Claude, mapeamento completo do MVP v1 (commits até `aa06919`), segurança implementada, gap analysis contra o documento de arquitetura e anexo integral do PDF. Nenhum código alterado.                                                                                                                                                                                                                                                                                                                             |
-| 2026-10-27 | `/CLAUDE.md` removido do `.gitignore`: este arquivo passa a ser versionado com o projeto.                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| 2026-10-27 | CLAUDE.md comprimido; anexo (seção 12) passa a ser especificação viva e atualizável (regra 0.4 alterada). Nenhum código alterado.                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| 2026-10-27 | Segunda passada: deduplicação, remoção de prosa/referências numeradas, regras 8–12 (um fato um lugar, rotação do changelog, orçamento de 650 linhas que nunca vence o contexto). Nenhum código alterado.                                                                                                                                                                                                                                                                                                                                                   |
-| 2026-10-27 | Seção 14 (pendências, decisões e próximos passos — memória entre sessões) criada; regra 0.4 item 13 e leitura de 14.1/14.3 em 0.1. Nenhum código alterado.                                                                                                                                                                                                                                                                                                                                                                                                 |
-| 2026-10-27 | Seção 0.6 (retomada, documentação das ferramentas, tarefa concluída); `@AGENTS.md`; coluna Doc na seção 2; regras 0.4 itens 5, 9, 10 e 11 (tamanho só informativo, nunca corta contexto; changelog completo; hash base). Nenhum código alterado. base 8f675ce                                                                                                                                                                                                                                                                                              |
-| 2026-10-27 | CI quebrado por formatação do CLAUDE.md (`vp check`: "Formatting issues found"); corrigido com `npx vp fmt CLAUDE.md` (só espaços, alinhamento de tabelas, `*x*` → `_x_`); 0.6 passa a exigir o fmt. Arquivos Wayfinder locais regenerados (`--with-form`, gitignored). `composer ci:check` local verde (677 testes). Nenhum código alterado. base 487f6a0                                                                                                                                                                                                 |
-| 2026-10-27 | Lead: campo "Link do Google Maps" (`maps_url`) + `latitude`/`longitude` derivados no servidor (`ParseGoogleMapsLink`, links curtos resolvidos com allowlist anti-SSRF); botão colar (`ClipboardPaste`); botão `MapPin` no card abre modal com mapa Leaflet/OSM (lazy) e "Abrir no Google Maps". Deps: `leaflet`, `react-leaflet`, `@types/leaflet`. Migration `2026_10_28_005604_add_maps_location_to_leads_table`; `LeadMapsLocationTest`; `LeadIntegrityTest` (rollback) inclui a nova migration. Seções 2, 3, 4, 6.4, 7, 10.1, 11, 12, 14. base 66af1ac |
-| 2026-10-27 | Links compartilhados pelo app do Google Maps passam a funcionar: redirect do app traz só nome/endereço, agora geocodificado no Nominatim/OSM; padrão de pin `/maps/search/lat,+lng`; texto colado com nome + link extrai a URL. Testes em `LeadMapsLocationTest`. Seções 3.1, 6.4, 7, 11, 14. base 2e8db42                                                                                                                                                                                                                                                 |
-| 2026-10-27 | Valor cobrado > 0 obrigatório para lead em "Finalizado" (regra em `SaveLead`; check aceita `charged_amount`; modal com input; `LeadMoneyField` extraído; `isPositiveLeadMoney`). Testes de venda atualizados + novos em `SaleCompletionTest`. Seções 3.1, 3.3, 5, 6.4, 11, 12, 14. base 4642076                                                                                                                                                                                                                                                            |
-| 2026-10-27 | Card "Leads vendidos" do dashboard passa a destacar o faturamento (`soldRevenue`, soma exata em centavos no banco) com % e quantidade como texto secundário. Bloco verde do painel "Leads por categoria" inalterado. Orçamento de queries do dashboard em `DashboardMetricsTest` 4 → 5. Novo teste em `SaleMetricsTest`. Seções 3.3, 6.6, 10.1, 14. base 4642076                                                                                                                                                                                           |
-| 2026-10-28 | Valor do faturamento no card "Leads vendidos" na cor `var(--dashboard-green)`. Seção 3.3. base 4642076                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| 2026-10-28 | Card "Meta" no dashboard (substitui "Em acompanhamento"): colunas `accounts.goal_amount`/`goal_deadline` (migration `2026_10_28_051407_add_goal_to_accounts_table`), `PUT                                                                                                                                                                                                                                                                                                                                                                                  | DELETE /dashboard/meta` (`DashboardGoalController`, `UpdateAccountGoalRequest`), props `goalAmount`/`goalDeadline`/`goalRemaining`sem query extra,`dashboard-goal-dialog`, `dashboardEditButtonClass`compartilhado,`formatLeadMoney`com negativo. Testes em`DashboardMetricsTest`e`lead-format.test.mjs`. Seções 1, 3.1, 3.3, 3.4, 4, 5, 6.6, 10.1, 11, 12, 13, 14. base 91721df |
-| 2026-10-28 | Botão de mapa em todos os leads; lead sem localização cadastra o link dentro do modal (envio ao colar/Enter/blur, spinner, erro no campo, mapa carrega sem fechar). Rota `PATCH /leads/{lead}/location` (`leads.location`) + `UpdateLeadLocationRequest` (estende `MutateLeadRequest`, regras via `StoreLeadRequest::mapsUrlRules()`) → `SaveLead`. `LeadMapsUrlField` extraído do form; `mapsLinkFrom()` em `lead-format.ts` (+ teste JS). Testes novos em `LeadMapsLocationTest`. Seções 3.1, 3.3, 3.4, 5, 6.4, 13, 14. base 91721df                     |
-| 2026-10-28 | Dashboard: `overview.categories` (donut + lista "Leads por categoria") ordenadas no backend da categoria com mais leads para a com menos (empate: mais nova primeiro). Teste em `DashboardMetricsTest`. Seção 6.6. base 4642076                                                                                                                                                                                                                                                                                                                            |
+| Data       | Mudança                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-27 | Criação do CLAUDE.md: instruções para o Claude, mapeamento completo do MVP v1 (commits até `aa06919`), segurança implementada, gap analysis contra o documento de arquitetura e anexo integral do PDF. Nenhum código alterado.                                                                                                                                                                                                                                                                                                                                 |
+| 2026-10-27 | `/CLAUDE.md` removido do `.gitignore`: este arquivo passa a ser versionado com o projeto.                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| 2026-10-27 | CLAUDE.md comprimido; anexo (seção 12) passa a ser especificação viva e atualizável (regra 0.4 alterada). Nenhum código alterado.                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| 2026-10-27 | Segunda passada: deduplicação, remoção de prosa/referências numeradas, regras 8–12 (um fato um lugar, rotação do changelog, orçamento de 650 linhas que nunca vence o contexto). Nenhum código alterado.                                                                                                                                                                                                                                                                                                                                                       |
+| 2026-10-27 | Seção 14 (pendências, decisões e próximos passos — memória entre sessões) criada; regra 0.4 item 13 e leitura de 14.1/14.3 em 0.1. Nenhum código alterado.                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 2026-10-27 | Seção 0.6 (retomada, documentação das ferramentas, tarefa concluída); `@AGENTS.md`; coluna Doc na seção 2; regras 0.4 itens 5, 9, 10 e 11 (tamanho só informativo, nunca corta contexto; changelog completo; hash base). Nenhum código alterado. base 8f675ce                                                                                                                                                                                                                                                                                                  |
+| 2026-10-27 | CI quebrado por formatação do CLAUDE.md (`vp check`: "Formatting issues found"); corrigido com `npx vp fmt CLAUDE.md` (só espaços, alinhamento de tabelas, `*x*` → `_x_`); 0.6 passa a exigir o fmt. Arquivos Wayfinder locais regenerados (`--with-form`, gitignored). `composer ci:check` local verde (677 testes). Nenhum código alterado. base 487f6a0                                                                                                                                                                                                     |
+| 2026-10-27 | Lead: campo "Link do Google Maps" (`maps_url`) + `latitude`/`longitude` derivados no servidor (`ParseGoogleMapsLink`, links curtos resolvidos com allowlist anti-SSRF); botão colar (`ClipboardPaste`); botão `MapPin` no card abre modal com mapa Leaflet/OSM (lazy) e "Abrir no Google Maps". Deps: `leaflet`, `react-leaflet`, `@types/leaflet`. Migration `2026_10_28_005604_add_maps_location_to_leads_table`; `LeadMapsLocationTest`; `LeadIntegrityTest` (rollback) inclui a nova migration. Seções 2, 3, 4, 6.4, 7, 10.1, 11, 12, 14. base 66af1ac     |
+| 2026-10-27 | Links compartilhados pelo app do Google Maps passam a funcionar: redirect do app traz só nome/endereço, agora geocodificado no Nominatim/OSM; padrão de pin `/maps/search/lat,+lng`; texto colado com nome + link extrai a URL. Testes em `LeadMapsLocationTest`. Seções 3.1, 6.4, 7, 11, 14. base 2e8db42                                                                                                                                                                                                                                                     |
+| 2026-10-27 | Valor cobrado > 0 obrigatório para lead em "Finalizado" (regra em `SaveLead`; check aceita `charged_amount`; modal com input; `LeadMoneyField` extraído; `isPositiveLeadMoney`). Testes de venda atualizados + novos em `SaleCompletionTest`. Seções 3.1, 3.3, 5, 6.4, 11, 12, 14. base 4642076                                                                                                                                                                                                                                                                |
+| 2026-10-27 | Card "Leads vendidos" do dashboard passa a destacar o faturamento (`soldRevenue`, soma exata em centavos no banco) com % e quantidade como texto secundário. Bloco verde do painel "Leads por categoria" inalterado. Orçamento de queries do dashboard em `DashboardMetricsTest` 4 → 5. Novo teste em `SaleMetricsTest`. Seções 3.3, 6.6, 10.1, 14. base 4642076                                                                                                                                                                                               |
+| 2026-10-28 | Valor do faturamento no card "Leads vendidos" na cor `var(--dashboard-green)`. Seção 3.3. base 4642076                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 2026-10-28 | Card "Meta" no dashboard (substitui "Em acompanhamento"): colunas `accounts.goal_amount`/`goal_deadline` (migration `2026_10_28_051407_add_goal_to_accounts_table`), `PUT                                                                                                                                                                                                                                                                                                                                                                                      | DELETE /dashboard/meta` (`DashboardGoalController`, `UpdateAccountGoalRequest`), props `goalAmount`/`goalDeadline`/`goalRemaining`sem query extra,`dashboard-goal-dialog`, `dashboardEditButtonClass`compartilhado,`formatLeadMoney`com negativo. Testes em`DashboardMetricsTest`e`lead-format.test.mjs`. Seções 1, 3.1, 3.3, 3.4, 4, 5, 6.6, 10.1, 11, 12, 13, 14. base 91721df |
+| 2026-10-28 | Botão de mapa em todos os leads; lead sem localização cadastra o link dentro do modal (envio ao colar/Enter/blur, spinner, erro no campo, mapa carrega sem fechar). Rota `PATCH /leads/{lead}/location` (`leads.location`) + `UpdateLeadLocationRequest` (estende `MutateLeadRequest`, regras via `StoreLeadRequest::mapsUrlRules()`) → `SaveLead`. `LeadMapsUrlField` extraído do form; `mapsLinkFrom()` em `lead-format.ts` (+ teste JS). Testes novos em `LeadMapsLocationTest`. Seções 3.1, 3.3, 3.4, 5, 6.4, 13, 14. base 91721df                         |
+| 2026-10-28 | Dashboard: `overview.categories` (donut + lista "Leads por categoria") ordenadas no backend da categoria com mais leads para a com menos (empate: mais nova primeiro). Teste em `DashboardMetricsTest`. Seção 6.6. base 4642076                                                                                                                                                                                                                                                                                                                                |
+| 2026-10-30 | Anexo (seção 12) movido byte a byte para `docs/arquitetura-alvo.md` (637 linhas, 19861 caracteres, diff limpo) pelo limite de 150k caracteres do Claude Code (arquivo tinha 150789); seção 12 vira bloco curto com quando ler. Regras 0.1 (item 6), 0.3, 0.4 (itens 4, 6, 10, 11: política `wc -m`, aviso acima de 140k) e referências em 10.2, 11.1 e 14.4 ajustadas. Nenhum conteúdo apagado. Nenhum código alterado. base 10a5970                                                                                                                           |
+| 2026-10-30 | Tooltip da rosca "Leads por categoria" ficava ilegível: overlay central (`absolute`, irmão posterior) pintava sobre o wrapper do tooltip Recharts (`absolute`, sem z-index). Overlay movido para antes do gráfico no DOM; sem z-index/CSS novo; `--popover` já era sólido. Seções 3.3, 13, 14. base 10a5970                                                                                                                                                                                                                                                    |
+| 2026-11-02 | Lead: campo opcional `company_name` (migration `2026_11_02_170713_add_company_name_to_leads_table`, `#[Fillable]`, `StoreLeadRequest` com trim/`''`→null/≤120, coluna no `paginate` do index). Front: input "Empresa" acima do nome; `leadDisplayName()` em `lead-format.ts` exibe `EMPRESA - Nome` no card e nos modais (mapa, exclusão, finalizar/reabrir) e aria-labels. Testes em `LeadFoundationTest`, `LeadMutationTest`, `LeadIntegrityTest` (rollback inclui a migration), `lead-format.test.mjs`. Seções 3.3, 3.4, 4, 6.4, 10.1, 13, 14. base 10a5970 |
 
 ---
 
@@ -1331,7 +718,7 @@ Perguntas que bloqueiam trabalho. O Claude NÃO decide sozinho; pergunta ao inic
 ### 14.4 Decisões tomadas (com o porquê)
 
 Formato: `AAAA-MM-DD | decisão | motivo | alternativa descartada`.
-Evita rediscutir o que já foi resolvido. Decisão de arquitetura-alvo também entra no anexo (12).
+Evita rediscutir o que já foi resolvido. Decisão de arquitetura-alvo também entra no anexo (12, `docs/arquitetura-alvo.md`).
 
 - 2026-10-27 | CLAUDE.md é o cérebro único; anexo (12) é especificação viva | sessão nova não herda a conversa, só o arquivo | arquivo de contexto separado
 - 2026-10-27 | Limite de tamanho do CLAUDE.md não pode cortar contexto; tamanho é só informativo | o arquivo é o cérebro único e a prioridade do usuário é nunca perder contexto | limite de 650 linhas com condensação automática (arquivo real ~1210 linhas)
@@ -1352,6 +739,10 @@ Evita rediscutir o que já foi resolvido. Decisão de arquitetura-alvo também e
 - 2026-10-28 | Não-dono → 404 (não 403) na meta | regra 0.2 (tenant alheio = 404) e role enum só tem `owner`; quem não é owner é barrado no `ResolveCurrentAccount` | 403 pedido no prompt
 - 2026-10-28 | `inProgressLeads` mantido no backend | testes existentes o afirmam ("não inventa status comerciais"); não remover contexto | apagar a prop
 - 2026-10-27 | Medição de referência: 8983 palavras (wc -w) | base para o aviso de crescimento >15% (0.4 item 10) | —
+- 2026-10-30 | Anexo (12) movido para `docs/arquitetura-alvo.md`; política de tamanho por `wc -m` (aviso acima de 140k) | CLAUDE.md passou do limite de 150k caracteres do Claude Code (150789) e deixava de ser carregado inteiro; mover não perde contexto | cortar/resumir conteúdo (proibido por 0.4 itens 10 e 11)
+- 2026-10-30 | Tooltip da rosca corrigido pela ordem do DOM (overlay central antes do gráfico), não por z-index | causa era empilhamento: irmão posicionado posterior pinta por cima; `bg-popover` já sólido | z-index/`wrapperStyle` no tooltip; trocar token de cor
+- 2026-11-02 | Empresa do lead como texto livre `leads.company_name` (≤120, mesmo limite de `name`), maiúsculas só na exibição | pedido do usuário; `clients` (10.2) é entidade futura de agência, não bloqueia | criar `clients` agora; gravar em maiúsculas
+- 2026-10-30 | Medição de referência atualizada: CLAUDE.md com 9117 palavras, 133657 caracteres (wc -w / wc -m), após mover o Anexo | nova base para o aviso de crescimento >15% (0.4 item 10) e para a política de 140k | —
 
 ### 14.5 Ideias e descartes
 

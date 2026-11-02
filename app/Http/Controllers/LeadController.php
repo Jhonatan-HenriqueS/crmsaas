@@ -36,7 +36,7 @@ class LeadController extends Controller
         }
 
         $leads = $query
-            ->paginate(12, ['id', 'category_id', 'name', 'description', 'first_contact_date', 'next_contact_date', 'potential_amount', 'charged_amount', 'maps_url', 'latitude', 'longitude']);
+            ->paginate(12, ['id', 'category_id', 'name', 'company_name', 'description', 'first_contact_date', 'next_contact_date', 'potential_amount', 'charged_amount', 'maps_url', 'latitude', 'longitude']);
 
         if ($leads->currentPage() > $leads->lastPage()) {
             return to_route('leads.index', array_filter(['page' => $leads->lastPage(), 'category' => $selectedCategory?->id]));

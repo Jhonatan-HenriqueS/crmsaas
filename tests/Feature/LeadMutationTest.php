@@ -60,6 +60,23 @@ test('editing can clear all optional values while preserving a monetary zero', f
     expect($saved->charged_amount)->toBe('0.00');
 });
 
+test('editing can add and remove the company name without touching other accounts', function () {
+    $own = Membership::factory()->create();
+    $lead = Lead::factory()->for($own->account)->create();
+    $other = Lead::factory()->create(['company_name' => 'Outra Empresa']);
+    $otherBefore = $other->fresh()->getRawOriginal();
+    $payload = [...leadMutationPayload($lead), 'first_contact_date' => $lead->first_contact_date->toDateString()];
+
+    $this->actingAs($own->user)->patch(route('leads.update', $lead), [...$payload, 'company_name' => ' Refuge Estética '])->assertRedirect();
+    expect($lead->fresh()->company_name)->toBe('Refuge Estética');
+    $this->get(route('leads.index'))->assertInertia(fn (Assert $page) => $page
+        ->where('leads.data.0.company_name', 'Refuge Estética')->where('leads.data.0.name', $lead->name));
+
+    $this->patch(route('leads.update', $lead), [...$payload, 'company_name' => ''])->assertRedirect();
+    expect($lead->fresh()->company_name)->toBeNull();
+    expect($other->fresh()->getRawOriginal())->toBe($otherBefore);
+});
+
 test('saving identical values preserves timestamps and emits no update notification', function () {
     $this->freezeTime();
     $own = Membership::factory()->create();
@@ -89,7 +106,7 @@ test('invalid updates return 422 and preserve the complete stored lead', functio
 })->with([
     'empty name' => ['name', ''], 'array name' => ['name', []], 'long name' => ['name', str_repeat('a', 121)],
     'control character' => ['name', "Empresa\0Inválida"], 'array description' => ['description', []],
-    'long description' => ['description', str_repeat('a', 5001)], 'array category' => ['category_id', []],
+    'long description' => ['description', str_repeat('a', 5001)], 'long company' => ['company_name', str_repeat('a', 121)], 'array category' => ['category_id', []],
     'missing category' => ['category_id', 999999], 'invalid date' => ['first_contact_date', '2026-02-30'],
     'date timestamp' => ['first_contact_date', '2020-01-10T00:00:00Z'], 'next before first' => ['next_contact_date', '2020-01-09'],
     'invalid next date' => ['next_contact_date', '2020-02-30'], 'negative potential' => ['potential_amount', '-0.01'],

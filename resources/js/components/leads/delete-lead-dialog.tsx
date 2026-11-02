@@ -13,6 +13,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
+import { leadDisplayName } from '@/lib/lead-format';
 import { destroy } from '@/routes/leads';
 import type { Lead } from '@/types/lead';
 import type { LeadCategory } from '@/types/lead-category';
@@ -26,6 +27,7 @@ export function DeleteLeadDialog({ lead, page }: { lead: Lead; page: number }) {
     const cancelButton = useRef<HTMLButtonElement>(null);
     const submitting = useRef(false);
     const form = useForm<Record<string, never>>({});
+    const displayName = leadDisplayName(lead.company_name, lead.name);
     const error =
         (form.errors as Record<string, string | undefined>).form ||
         requestError;
@@ -101,7 +103,7 @@ export function DeleteLeadDialog({ lead, page }: { lead: Lead; page: number }) {
                     type="button"
                     variant="outline"
                     size="icon"
-                    aria-label={`Excluir ${lead.name}`}
+                    aria-label={`Excluir ${displayName}`}
                     title="Excluir lead"
                     className="size-9 rounded-xl border-white/10 bg-white/[0.02] text-muted-foreground"
                 >
@@ -125,7 +127,7 @@ export function DeleteLeadDialog({ lead, page }: { lead: Lead; page: number }) {
             >
                 <DialogHeader className="gap-3 text-left">
                     <DialogTitle className="pr-6 text-xl leading-snug font-semibold tracking-tight [overflow-wrap:anywhere]">
-                        Deseja excluir &quot;{lead.name}&quot;?
+                        Deseja excluir &quot;{displayName}&quot;?
                     </DialogTitle>
                     <DialogDescription className="text-sm leading-relaxed">
                         Este lead e suas informações comerciais serão excluídos

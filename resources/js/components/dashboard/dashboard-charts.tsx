@@ -225,6 +225,23 @@ export function DashboardCategoryChart({ data }: { data: DashboardData }) {
                     role="group"
                     aria-labelledby="categories-title"
                 >
+                    <div
+                        className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"
+                        aria-hidden={data.totalLeads > 0}
+                    >
+                        <span className="mb-1 text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
+                            Total de leads
+                        </span>
+                        <span className="text-3xl font-semibold tracking-[-0.04em] tabular-nums">
+                            {formatCount(data.totalLeads)}
+                        </span>
+                        <span className="mt-2 h-0.5 w-6 rounded-full bg-primary" />
+                        {data.totalLeads === 0 && (
+                            <span className="mt-3 text-xs text-muted-foreground">
+                                Nenhum lead cadastrado
+                            </span>
+                        )}
+                    </div>
                     {data.totalLeads > 0 && (
                         <ResponsiveContainer
                             width="100%"
@@ -274,23 +291,6 @@ export function DashboardCategoryChart({ data }: { data: DashboardData }) {
                             </PieChart>
                         </ResponsiveContainer>
                     )}
-                    <div
-                        className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"
-                        aria-hidden={data.totalLeads > 0}
-                    >
-                        <span className="mb-1 text-[10px] tracking-[0.12em] text-muted-foreground uppercase">
-                            Total de leads
-                        </span>
-                        <span className="text-3xl font-semibold tracking-[-0.04em] tabular-nums">
-                            {formatCount(data.totalLeads)}
-                        </span>
-                        <span className="mt-2 h-0.5 w-6 rounded-full bg-primary" />
-                        {data.totalLeads === 0 && (
-                            <span className="mt-3 text-xs text-muted-foreground">
-                                Nenhum lead cadastrado
-                            </span>
-                        )}
-                    </div>
                 </div>
                 <div className="mb-3 flex items-center justify-between gap-3 border-b border-white/[0.06] pb-3 text-[10px] text-muted-foreground">
                     <span>Categoria</span>

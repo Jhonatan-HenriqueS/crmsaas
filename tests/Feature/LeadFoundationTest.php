@@ -223,6 +223,22 @@ test('valid Unicode text is accepted at the name and description limits', functi
     ])->assertCreated()->assertJsonPath('lead.name', $name)->assertJsonPath('lead.description', $description);
 });
 
+test('company name is optional trimmed and blank becomes null', function (?string $company, ?string $expected) {
+    $membership = Membership::factory()->create();
+    $category = LeadCategory::factory()->for($membership->account)->create();
+
+    $this->actingAs($membership->user)->postJson(route('test.leads.store'), [
+        ...leadFoundationPayload($category), 'company_name' => $company,
+    ])->assertCreated()->assertJsonPath('lead.company_name', $expected)->assertJsonPath('lead.name', 'Empresa interessada');
+
+    $this->assertDatabaseHas('leads', ['account_id' => $membership->account_id, 'company_name' => $expected]);
+    $this->getJson(route('test.leads.index'))->assertJsonPath('leads.data.0.company_name', $expected);
+})->with([
+    'with company' => ['  Refuge Estética  ', 'Refuge Estética'],
+    'blank company' => ['   ', null],
+    'without company' => [null, null],
+]);
+
 test('malformed lead fields are rejected with Portuguese messages', function (string $field, mixed $value, string $message) {
     $membership = Membership::factory()->create();
     $category = LeadCategory::factory()->for($membership->account)->create();
@@ -239,6 +255,9 @@ test('malformed lead fields are rejected with Portuguese messages', function (st
     'name number' => ['name', 123, 'Informe um nome válido para o lead.'],
     'long name' => ['name', str_repeat('á', 121), 'O nome do lead deve ter no máximo 120 caracteres.'],
     'control in name' => ['name', "nome\x01", 'O nome do lead contém caracteres inválidos.'],
+    'company array' => ['company_name', ['x'], 'Informe um nome de empresa válido.'],
+    'long company' => ['company_name', str_repeat('á', 121), 'O nome da empresa deve ter no máximo 120 caracteres.'],
+    'control in company' => ['company_name', "empresa\x01", 'O nome da empresa contém caracteres inválidos.'],
     'description array' => ['description', ['x'], 'Informe uma descrição válida para o lead.'],
     'description object' => ['description', (object) ['note' => 'x'], 'Informe uma descrição válida para o lead.'],
     'long description' => ['description', str_repeat('á', 5001), 'A descrição deve ter no máximo 5000 caracteres.'],

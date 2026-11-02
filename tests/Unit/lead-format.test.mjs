@@ -7,6 +7,7 @@ import {
     formatLeadMoney,
     formatLeadMoneyInput,
     isPositiveLeadMoney,
+    leadDisplayName,
     localCivilDate,
     mapsLinkFrom,
     parseLeadMoney,
@@ -115,4 +116,17 @@ test('pasted maps texts keep only the first link', () => {
         'https://maps.app.goo.gl/abc?g_st=ic',
     );
     assert.equal(mapsLinkFrom('  sem link  '), 'sem link');
+});
+
+test('display name prefixes the uppercased company only when present', () => {
+    assert.equal(
+        leadDisplayName('Refuge Estética', 'Roselaine'),
+        'REFUGE ESTÉTICA - Roselaine',
+    );
+    assert.equal(
+        leadDisplayName('  Ação & Cia  ', '  Conceição '),
+        'AÇÃO & CIA - Conceição',
+    );
+    assert.equal(leadDisplayName(null, 'Roselaine'), 'Roselaine');
+    assert.equal(leadDisplayName('   ', 'Roselaine'), 'Roselaine');
 });

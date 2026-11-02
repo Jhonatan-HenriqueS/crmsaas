@@ -67,6 +67,15 @@ export function categoryColor(value: string): string {
     return /^#[0-9a-f]{6}$/i.test(value) ? value : '#6d54b5';
 }
 
+export function leadDisplayName(
+    companyName: string | null,
+    name: string,
+): string {
+    const company = companyName?.trim().toLocaleUpperCase('pt-BR');
+
+    return company ? `${company} - ${name.trim()}` : name.trim();
+}
+
 /** Shared texts carry the place name before the link; keep only the first link. */
 export function mapsLinkFrom(text: string): string {
     const value = text.trim();
