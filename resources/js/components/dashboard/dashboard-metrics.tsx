@@ -86,6 +86,10 @@ export function DashboardMetrics({
             title: category
                 ? `Total de leads em "${category.name}"`
                 : 'Total de leads',
+            accent: category && {
+                text: `"${category.name}"`,
+                color: categoryColor(category.color),
+            },
             value: formatCount(category ? category.count : data.totalLeads),
             label: category
                 ? `${formatPercentage(category.percentage)} do total de leads`
@@ -186,7 +190,20 @@ export function DashboardMetrics({
                                     metric.truncate ? metric.title : undefined
                                 }
                             >
-                                {metric.title}
+                                {metric.accent ? (
+                                    <>
+                                        Total de leads em{' '}
+                                        <span
+                                            style={{
+                                                color: metric.accent.color,
+                                            }}
+                                        >
+                                            {metric.accent.text}
+                                        </span>
+                                    </>
+                                ) : (
+                                    metric.title
+                                )}
                             </h2>
                             {metric.menu ? (
                                 <MetricSelectMenu {...metric.menu} />

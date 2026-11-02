@@ -281,7 +281,7 @@ Card "Total de leads" (`dashboard-metrics`): `Pencil` + menu "Categoria" (`Metri
 "Todos" + `overview.categories`; estado local por id, sem request; título `Total de leads em "X"` truncado
 (`title`), `count` e "N% do total de leads"; categoria sumida volta a "Todos". Opções com bolinha da cor
 (`color` opcional no `MetricSelectMenu`); selecionada logo abaixo de "Todos"; card ganha `linear-gradient(135deg, <cor>59 0%,
-transparent 75%)` inline (alfa 59 ≈35%), título e texto secundário em `text-foreground` (pior caso branco puro: título 5,07:1). Cards com `key` fixa (`id`). Título todo em texto simples (cor da categoria só na bolinha e no gradiente).
+transparent 75%)` inline (alfa 59 ≈35%), título e texto secundário em `text-foreground` (pior caso branco puro: título 5,07:1). Cards com `key` fixa (`id`). No título, só `"X"` (nome + aspas) na cor da categoria (`accent`).
 
 ### 3.4 Testes (`tests/`)
 
