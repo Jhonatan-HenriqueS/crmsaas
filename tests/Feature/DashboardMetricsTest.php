@@ -279,6 +279,61 @@ test('category deletion cascades and recalculates all metrics without touching a
         ->where('categories.data.0.leads_count', 1)->where('categories.data.0.percentage', 100));
 });
 
+test('upcoming contacts list only scheduled open leads of the account from most overdue to most distant', function () {
+    $own = Membership::factory()->create();
+    $open = LeadCategory::factory()->for($own->account)->create();
+    $sold = $own->account->leadCategories()->where('system_key', LeadCategory::SALE_COMPLETED)->firstOrFail();
+    $scheduled = fn (string $date, array $attributes = []): Lead => Lead::factory()->for($own->account)->for($open, 'category')
+        ->create(['next_contact_date' => $date, 'first_contact_date' => '2020-01-01', ...$attributes]);
+    $distant = $scheduled('2026-11-20');
+    $today = $scheduled('2026-10-16', ['name' => 'Roselaine', 'company_name' => 'Refuge Estética']);
+    $mostOverdue = $scheduled('2026-10-10');
+    $tomorrow = $scheduled('2026-10-17');
+    $yesterday = $scheduled('2026-10-15');
+    $tie = $scheduled('2026-10-17');
+    Lead::factory()->for($own->account)->for($open, 'category')->create(['next_contact_date' => null]);
+    Lead::factory()->for($own->account)->for($sold, 'category')->create(['next_contact_date' => '2026-10-01', 'charged_amount' => '10.00']);
+    Lead::factory()->create(['next_contact_date' => '2026-10-01']);
+
+    $this->actingAs($own->user)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page
+        ->where('overview.upcomingContacts.today', '2026-10-16')->where('overview.upcomingContacts.overdueCount', 2)
+        ->where('overview.upcomingContacts.leads', fn ($leads): bool => collect($leads)->pluck('id')->all()
+            === [$mostOverdue->id, $yesterday->id, $today->id, $tomorrow->id, $tie->id, $distant->id])
+        ->has('overview.upcomingContacts.leads.2', fn (Assert $lead) => $lead->where('id', $today->id)
+            ->where('name', 'Roselaine')->where('company_name', 'Refuge Estética')->where('next_contact_date', '2026-10-16')));
+});
+
+test('overdue contacts follow the report timezone across midnight', function () {
+    $own = Membership::factory()->create();
+    Lead::factory()->for($own->account)->create(['next_contact_date' => '2026-10-16']);
+
+    $this->travelTo(CarbonImmutable::parse('2026-10-17 03:59:59', 'UTC'));
+    $this->actingAs($own->user)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page
+        ->where('overview.upcomingContacts.today', '2026-10-16')->where('overview.upcomingContacts.overdueCount', 0));
+
+    $this->travelTo(CarbonImmutable::parse('2026-10-17 04:00:00', 'UTC'));
+    $this->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page
+        ->where('overview.upcomingContacts.today', '2026-10-17')->where('overview.upcomingContacts.overdueCount', 1));
+});
+
+test('upcoming contacts are capped while the overdue counter stays exact', function () {
+    $own = Membership::factory()->create();
+    $category = LeadCategory::factory()->for($own->account)->create();
+    Lead::factory()->count(51)->for($own->account)->for($category, 'category')->create(['next_contact_date' => '2026-10-01']);
+
+    $this->actingAs($own->user)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page
+        ->has('overview.upcomingContacts.leads', 50)->where('overview.upcomingContacts.overdueCount', 51));
+});
+
+test('an account without scheduled contacts has an empty agenda', function () {
+    $own = Membership::factory()->create();
+    Lead::factory()->for($own->account)->create(['next_contact_date' => null]);
+    Lead::factory()->create(['next_contact_date' => '2026-10-01']);
+
+    $this->actingAs($own->user)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page
+        ->has('overview.upcomingContacts.leads', 0)->where('overview.upcomingContacts.overdueCount', 0));
+});
+
 test('a partial period reload queries only the requested metric', function () {
     $own = Membership::factory()->create();
     metricLead($own->account, '2026-10-16 12:00:00');
@@ -314,7 +369,7 @@ test('metrics query counts remain bounded as category and lead counts grow', fun
     try {
         $this->actingAs($own->user)->get(route('dashboard'))->assertOk();
         $dashboardQueries = collect(DB::getQueryLog())->filter(fn (array $query): bool => str_contains($query['query'], '"leads"'));
-        expect($dashboardQueries)->toHaveCount(5);
+        expect($dashboardQueries)->toHaveCount(7);
         foreach ($dashboardQueries as $query) {
             expect($query['query'])->toContain('account_id');
             expect($query['bindings'])->toContain($own->account_id);

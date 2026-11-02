@@ -53,7 +53,7 @@ export default function Dashboard({ overview, newLeads }: Props) {
                     <div className="grid min-w-0 grid-cols-1 items-stretch gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
                         <DashboardBarChart data={overview} />
                         <DashboardCategoryChart data={overview} />
-                        <DashboardRecords />
+                        <DashboardRecords data={overview.upcomingContacts} />
                     </div>
                     <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.045] pt-4 text-[10px] text-muted-foreground/70">
                         <span>HING CRM</span>

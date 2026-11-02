@@ -4,6 +4,7 @@ use App\Models\Lead;
 use App\Models\LeadCategory;
 use App\Models\Membership;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Arr;
 
 beforeEach(function () {
     config(['reporting.timezone' => 'America/Porto_Velho']);
@@ -55,7 +56,11 @@ test('editing a name or contact dates preserves all dashboard metrics', function
         ->assertRedirect();
 
     $after = $this->get(route('dashboard'))->assertOk()->inertiaProps();
-    expect($after['overview'])->toBe($before['overview']);
+    expect(Arr::except($after['overview'], 'upcomingContacts'))->toBe(Arr::except($before['overview'], 'upcomingContacts'));
+    expect($before['overview']['upcomingContacts']['leads'])->toBe([]);
+    expect($after['overview']['upcomingContacts']['leads'])->toBe([
+        ['id' => $lead->id, 'name' => 'Novo nome', 'company_name' => null, 'next_contact_date' => '2030-01-01'],
+    ]);
     expect($after['newLeads'])->toBe($before['newLeads']);
     expect($lead->fresh()->getRawOriginal('created_at'))->toBe('2026-10-16 04:01:00');
 });

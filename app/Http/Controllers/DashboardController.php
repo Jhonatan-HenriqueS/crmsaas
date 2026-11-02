@@ -19,6 +19,8 @@ class DashboardController extends Controller
 {
     private const PERIOD_DAYS = ['week' => 7, 'fortnight' => 14, 'month' => 30];
 
+    private const UPCOMING_CONTACTS_LIMIT = 50;
+
     public function index(Request $request, CurrentAccount $currentAccount): Response
     {
         $account = $currentAccount->get();
@@ -47,7 +49,8 @@ class DashboardController extends Controller
      *     goalAmount: string|null, goalDeadline: string|null, goalRemaining: string|null,
      *     reportingTimezone: string, weeklyTotal: int,
      *     categories: list<array{id: int, name: string, color: string, count: int, percentage: float}>,
-     *     weeklyIntake: list<array{day: string, date: string, count: int}>
+     *     weeklyIntake: list<array{day: string, date: string, count: int}>,
+     *     upcomingContacts: array{today: string, overdueCount: int, leads: list<Lead>}
      * }
      */
     private function overview(Account $account, CarbonImmutable $now): array
@@ -88,6 +91,21 @@ class DashboardController extends Controller
             'weeklyTotal' => $weekly['total'],
             'categories' => array_values($categories),
             'weeklyIntake' => $weekly['days'],
+            'upcomingContacts' => $this->upcomingContacts($account, $soldCategory, $now->toDateString()),
+        ];
+    }
+
+    /** @return array{today: string, overdueCount: int, leads: list<Lead>} */
+    private function upcomingContacts(Account $account, ?LeadCategory $soldCategory, string $today): array
+    {
+        $scheduled = fn (): Builder => $account->leads()->getQuery()->whereNotNull('next_contact_date')
+            ->when($soldCategory, fn (Builder $query, LeadCategory $category) => $query->where('category_id', '!=', $category->id));
+
+        return [
+            'today' => $today,
+            'overdueCount' => $scheduled()->where('next_contact_date', '<', $today)->count(),
+            'leads' => array_values($scheduled()->orderBy('next_contact_date')->orderBy('id')->limit(self::UPCOMING_CONTACTS_LIMIT)
+                ->get(['id', 'name', 'company_name', 'next_contact_date'])->all()),
         ];
     }
 

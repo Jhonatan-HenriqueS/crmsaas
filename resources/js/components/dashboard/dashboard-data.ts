@@ -20,6 +20,18 @@ export type DashboardData = {
         percentage: number;
     }[];
     weeklyIntake: { day: string; date: string; count: number }[];
+    upcomingContacts: DashboardUpcomingContacts;
+};
+
+export type DashboardUpcomingContacts = {
+    today: string;
+    overdueCount: number;
+    leads: {
+        id: number;
+        name: string;
+        company_name: string | null;
+        next_contact_date: string;
+    }[];
 };
 
 export type DashboardNewLeads = { period: DashboardPeriod; count: number };
