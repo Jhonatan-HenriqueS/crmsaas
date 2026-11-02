@@ -11,7 +11,11 @@ import { useRef, useState } from 'react';
 import { DashboardGoalDialog } from '@/components/dashboard/dashboard-goal-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { formatLeadDate, formatLeadMoney } from '@/lib/lead-format';
+import {
+    categoryColor,
+    formatLeadDate,
+    formatLeadMoney,
+} from '@/lib/lead-format';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -50,6 +54,9 @@ export function DashboardMetrics({
     const category = data.categories.find(
         (option) => String(option.id) === categoryId,
     );
+    const categoryOptions = category
+        ? [category, ...data.categories.filter((option) => option !== category)]
+        : data.categories;
 
     function selectPeriod(value: DashboardPeriod) {
         if (pending.current || value === period) return;
@@ -75,6 +82,7 @@ export function DashboardMetrics({
     )?.label;
     const metrics = [
         {
+            id: 'total',
             title: category
                 ? `Total de leads em "${category.name}"`
                 : 'Total de leads',
@@ -84,21 +92,26 @@ export function DashboardMetrics({
                 : 'Visão geral da base',
             icon: Users,
             truncate: true,
+            background: category
+                ? `linear-gradient(135deg, ${categoryColor(category.color)}59 0%, transparent 75%)`
+                : undefined,
             menu: {
                 heading: 'Categoria',
                 ariaLabel: 'Filtrar por categoria',
                 value: category ? String(category.id) : 'all',
                 options: [
                     { value: 'all', label: 'Todos' },
-                    ...data.categories.map((option) => ({
+                    ...categoryOptions.map((option) => ({
                         value: String(option.id),
                         label: option.name,
+                        color: categoryColor(option.color),
                     })),
                 ],
                 onValueChange: setCategoryId,
             },
         },
         {
+            id: 'new',
             title: 'Novos leads',
             value: formatCount(newLeads.count),
             label: periodLabel,
@@ -121,6 +134,7 @@ export function DashboardMetrics({
             },
         },
         {
+            id: 'goal',
             title: 'Meta',
             value:
                 data.goalRemaining === null
@@ -135,6 +149,7 @@ export function DashboardMetrics({
             fit: true,
         },
         {
+            id: 'sold',
             title: 'Leads vendidos',
             value: formatLeadMoney(data.soldRevenue),
             label: `${formatPercentage(data.soldPercentage)} do total de leads · ${formatCount(data.soldLeads)} ${data.soldLeads === 1 ? 'lead vendido' : 'leads vendidos'}`,
@@ -151,8 +166,13 @@ export function DashboardMetrics({
         >
             {metrics.map((metric) => (
                 <Card
-                    key={metric.title}
+                    key={metric.id}
                     className={cn(dashboardCardClass, 'relative')}
+                    style={
+                        metric.background
+                            ? { backgroundImage: metric.background }
+                            : undefined
+                    }
                 >
                     <CardContent className="@container p-5 sm:p-6">
                         <div className="flex min-h-8 items-start justify-between gap-2">
@@ -160,6 +180,7 @@ export function DashboardMetrics({
                                 className={cn(
                                     'pt-1 text-xs font-medium text-muted-foreground',
                                     metric.truncate && 'min-w-0 truncate',
+                                    metric.background && 'text-foreground',
                                 )}
                                 title={
                                     metric.truncate ? metric.title : undefined
@@ -197,7 +218,12 @@ export function DashboardMetrics({
                         >
                             {metric.value}
                         </p>
-                        <p className="mt-3 flex min-h-5 items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <p
+                            className={cn(
+                                'mt-3 flex min-h-5 items-center gap-1.5 text-[11px] text-muted-foreground',
+                                metric.background && 'text-foreground',
+                            )}
+                        >
                             {metric.green ? (
                                 <Check
                                     className="size-3.5 text-[var(--dashboard-green)]"
@@ -229,7 +255,7 @@ function MetricSelectMenu({
     heading: string;
     ariaLabel: string;
     value: string;
-    options: { value: string; label: string }[];
+    options: { value: string; label: string; color?: string }[];
     disabled?: boolean;
     onValueChange: (value: string) => void;
 }) {
@@ -268,6 +294,13 @@ function MetricSelectMenu({
                             value={option.value}
                             className="min-h-10 cursor-pointer rounded-lg text-xs [overflow-wrap:anywhere] focus:bg-primary/20 data-[state=checked]:text-[#d3c2f7]"
                         >
+                            {option.color && (
+                                <span
+                                    className="size-2 shrink-0 rounded-full"
+                                    style={{ backgroundColor: option.color }}
+                                    aria-hidden="true"
+                                />
+                            )}
                             {option.label}
                         </DropdownMenuRadioItem>
                     ))}

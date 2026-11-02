@@ -279,7 +279,9 @@ S3, Sanctum, PWA. Ver 10.
 
 Card "Total de leads" (`dashboard-metrics`): `Pencil` + menu "Categoria" (`MetricSelectMenu`, igual ao "Novos leads");
 "Todos" + `overview.categories`; estado local por id, sem request; título `Total de leads em "X"` truncado
-(`title`), `count` e "N% do total de leads"; categoria sumida volta a "Todos".
+(`title`), `count` e "N% do total de leads"; categoria sumida volta a "Todos". Opções com bolinha da cor
+(`color` opcional no `MetricSelectMenu`); selecionada logo abaixo de "Todos"; card ganha `linear-gradient(135deg, <cor>59 0%,
+transparent 75%)` inline (alfa 59 ≈35%), título e texto secundário em `text-foreground` (pior caso branco puro: título 5,07:1). Cards com `key` fixa (`id`). Título todo em texto simples (cor da categoria só na bolinha e no gradiente).
 
 ### 3.4 Testes (`tests/`)
 
@@ -704,6 +706,7 @@ campaigns.read, campaigns.write, categories.write)` e `invitations` (token só p
 | 2026-11-02 | Dashboard: card "Prévia de registros" vira "Próximos contatos" (`DashboardController::upcomingContacts()`, prop `overview.upcomingContacts` com `today`, `overdueCount`, `leads` limitados a 50; exclui sem próximo contato e "Finalizado"; ordem por data asc + id). `dashboard-records.tsx` reescrito; tipo `DashboardUpcomingContacts`. Orçamento de queries do dashboard 5 → 7. Testes novos em `DashboardMetricsTest`; `LeadMutationMetricsTest` passa a comparar o overview sem `upcomingContacts` e afirma a agenda nova. Seções 1, 3.3, 3.4, 6.6, 11, 13, 14. base cd5e07d |
 | 2026-11-02 | Card "Total de leads": filtro local por categoria (menu `MetricSelectMenu` extraído do "Novos leads", sem mudança visual nele). Só front, orçamento de queries inalterado. Seções 3.3, 6.6, 13. base e1b3d84 |
 | 2026-11-02 | Tabelas do CLAUDE.md compactadas (só espaços; hash normalizado idêntico, 149938 → ~72k caracteres) e `CLAUDE.md` em `fmt.ignorePatterns`. Regra 0.4 item 14 (tabelas compactas, aviso em 120k, ~2k por tarefa); 0.4 item 10 e 0.6 ajustados. base 26aa6ab |
+| 2026-11-02 | Card "Total de leads": cor da categoria no menu, selecionada no topo, gradiente 15% e `key` fixa (foco preservado). Seções 3.3, 13. base defdb24 |
 
 ---
 
