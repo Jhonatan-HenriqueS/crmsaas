@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DashboardGoalController;
+use App\Http\Controllers\DashboardSoldViewController;
 use App\Http\Controllers\LeadCategoryController;
 use App\Http\Controllers\LeadController;
 use App\Http\Middleware\ResolveCurrentAccount;
@@ -13,6 +14,7 @@ Route::middleware(['auth', 'verified', ResolveCurrentAccount::class])->group(fun
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::put('dashboard/meta', [DashboardGoalController::class, 'update'])->name('dashboard.goal.update');
     Route::delete('dashboard/meta', [DashboardGoalController::class, 'destroy'])->name('dashboard.goal.destroy');
+    Route::put('dashboard/vendidos', [DashboardSoldViewController::class, 'update'])->name('dashboard.sold-view.update');
     Route::get('leads', [LeadController::class, 'index'])->name('leads.index');
     Route::post('leads', [LeadController::class, 'store'])->name('leads.store');
     Route::get('leads/etapas', [LeadController::class, 'categoryOptions'])->name('leads.category-options');

@@ -242,11 +242,12 @@ S3, Sanctum, PWA. Ver 10.
 | `Http/Responses/LogoutResponse.php` | `Inertia::clearHistory()` + redirect `/login` (204 em JSON). |
 | `Http/Responses/PasswordResetLinkResponse.php` | Resposta **idêntica** para e-mail existente ou não (anti-enumeração). |
 | `Models/User.php` | `MustVerifyEmail`, `TwoFactorAuthenticatable`; e-mail sempre lowercase; cast `password => hashed`; `memberships()`, `accounts()`, `ownedAccounts()`. |
-| `Models/Account.php` | `TYPES = ['empresa','agencia']`; `save()` de conta nova provisiona "Finalizado" na mesma transação. |
+| `Models/Account.php` | `TYPES = ['empresa','agencia']`; `SOLD_CARD_VIEWS = ['sold','potential','combined']` (padrão `sold` em `$attributes`); `save()` de conta nova provisiona "Finalizado" na mesma transação. |
 | `Models/Membership.php` | user ↔ account com `role` (hoje só `owner`). |
 | `Models/LeadCategory.php` | `SALE_COMPLETED`, `SALE_COMPLETED_COLOR`; `system_key` imutável; deleção da categoria de sistema vetada no evento `deleting`; `is_sale_completed` appended. |
 | `Models/Lead.php` | Casts de data civil e `decimal:2`; `#[Hidden(account_id)]`. |
 | `Http/Controllers/DashboardGoalController.php` | Meta da conta: `update` (`UpdateAccountGoalRequest`) e `destroy` (`Gate::authorize('update', $account)`); toasts "Meta salva/excluída"; redirect `dashboard` (ver 6.6). |
+| `Http/Controllers/DashboardSoldViewController.php` + `Http/Requests/UpdateSoldCardViewRequest.php` | Grava `accounts.sold_card_view` (`view` em `Account::SOLD_CARD_VIEWS`, `AccountPolicy@update`, rejeita extras em `form`); sem toast; redirect `dashboard`. |
 | `Http/Requests/UpdateAccountGoalRequest.php` | `AccountPolicy@update`; `goal_amount` (> 0, `decimal:0,2`, ≤ 9999999999.99) + **ou** `deadline_days` (1–3650) **ou** `deadline_date` (`Y-m-d`, ≥ hoje no fuso de relatório); rejeita extras (`form`); `goal()` converte dias em data (hoje + N em `reporting.timezone`). |
 | `Policies/AccountPolicy.php` | `view`/`update`: usuário precisa ser owner da conta, senão `denyAsNotFound`. |
 | `Policies/LeadPolicy.php` | `viewAny/view/create/update/delete` sempre exigem `lead.account_id === account.id` + AccountPolicy. |
@@ -283,6 +284,8 @@ Card "Total de leads" (`dashboard-metrics`): `Pencil` + menu "Categoria" (`Metri
 (`color` opcional no `MetricSelectMenu`); selecionada logo abaixo de "Todos"; card ganha `linear-gradient(135deg, <cor>59 0%,
 transparent 75%)` inline (alfa 59 ≈35%), título e texto secundário em `text-foreground` (pior caso branco puro: título 5,07:1). Cards com `key` fixa (`id`). No título, só `"X"` (nome + aspas) na cor da categoria (`accent`).
 
+Card "Leads vendidos": `Pencil` + `MetricSelectMenu` "Exibir no card" (`dashboardSoldViews`): "Total vendido" (`soldRevenue`, verde), "Valor potencial" (`potentialRevenue`, sem verde, "N lead(s) em aberto com valor potencial"), "Total + potencial" (título "Vendidos + potencial", `combinedRevenue`, verde). Escolha via `PUT dashboard.sold-view.update` (`only: ['overview']`, botão desabilitado durante envio); valor vem de `overview.soldCardView` (persistido na conta).
+
 ### 3.4 Testes (`tests/`)
 
 Padrão: ~336 testes Pest em `Feature` com `RefreshDatabase`; factories com estados (`Account::factory()->agency()`,
@@ -290,7 +293,7 @@ Padrão: ~336 testes Pest em `Feature` com `RefreshDatabase`; factories com esta
 Temas/arquivos: tenancy (`AccountAuthorizationTest`, `CurrentAccountTest`, `TenantFoundationTest`); leads
 (`LeadFoundationTest` (inclui `company_name`), `LeadMutationTest`, `LeadIntegrityTest`, `LeadPageTest`, `LeadMapsLocationTest` (com `Http::fake`/`preventStrayRequests`; inclui `leads.location`: grava link, 422 em link inválido/ausente/coords do browser, 404 em lead de outra conta)); categorias
 (`LeadCategory*Test`, `CategoryDeletion*Test`, `SystemLeadCategoryTest`); venda (`SaleCompletion*Test`,
-`SaleMetricsTest`); dashboard (`Dashboard*Test`, incl. `DashboardTest`, `DashboardMetricsTest` (inclui meta: definir/editar/remover, 422, dias → data, restante exato/negativo, isolamento; agenda "Próximos contatos": filtro, ordem, fuso na virada do dia, limite 50, contador, vazio))); sessão
+`SaleMetricsTest`); dashboard (`Dashboard*Test`, incl. `DashboardTest`, `DashboardMetricsTest` (inclui meta: definir/editar/remover, 422, dias → data, restante exato/negativo, isolamento; exibição do card vendidos: potencial só leads abertos, persistência, 422, 404; agenda "Próximos contatos": filtro, ordem, fuso na virada do dia, limite 50, contador, vazio))); sessão
 (`LogoutSecurityTest`, `SessionReplayTest`); registro (`RegistrationSecurityTest`, `RegistrationCsrfTest`);
 `SecurityConfigurationTest`; `Auth/*` (Login CSRF/Security, `AuthenticationTest`, `LoginSecurityTest`,
 Origin, Recovery, SessionRevocation, TrustedProxy, 2FA…); `Settings/*` (IdentitySecurity, OwnerDeletion…).
@@ -309,7 +312,7 @@ password_reset_tokens · cache · cache_locks · jobs · job_batches · failed_j
 | Tabela | Colunas | Restrições |
 | --- | --- | --- |
 | `users` | id, name, email (unique), email_verified_at, password (hash), two_factor_secret, two_factor_recovery_codes, two_factor_confirmed_at, remember_token, timestamps | segredos 2FA criptografados pelo Fortify; `#[Hidden]` |
-| `accounts` | id, `type enum('empresa','agencia')`, name nullable, goal_amount decimal(12,2) null, goal_deadline date null, timestamps | — |
+| `accounts` | id, `type enum('empresa','agencia')`, name nullable, goal_amount decimal(12,2) null, goal_deadline date null, sold_card_view string(16) default 'sold', timestamps | — |
 | `memberships` | id, user_id FK cascade, account_id FK cascade, `role enum('owner')`, timestamps | unique(user_id, account_id) |
 | `lead_categories` | id, account_id FK cascade, name(120), color(7), system_key(32) nullable, timestamps | unique(account_id, color); unique(account_id, id); unique(account_id, system_key); index(account_id, id) |
 | `leads` | id, account_id FK cascade, category_id, name(120), company_name string(120) null, description text null, first_contact_date date, next_contact_date date null, potential_amount decimal(12,2) null, charged_amount decimal(12,2) null, maps_url string(2048) null, latitude decimal(10,7) null, longitude decimal(10,7) null, timestamps | **FK composta (account_id, category_id) → lead_categories(account_id, id) ON DELETE CASCADE**; index(account_id, id); index(category_id, account_id) |
@@ -334,6 +337,7 @@ Autenticadas — middleware `auth` + `verified` + `ResolveCurrentAccount` (`rout
 | GET | `/dashboard` | dashboard | DashboardController@index (`?period=week | fortnight | month`) |
 | PUT | `/dashboard/meta` | dashboard.goal.update | define/substitui meta da conta (owner) |
 | DELETE | `/dashboard/meta` | dashboard.goal.destroy | remove meta da conta (owner) |
+| PUT | `/dashboard/vendidos` | dashboard.sold-view.update | salva exibição do card vendidos (`view`: sold/potential/combined) |
 | GET | `/leads` | leads.index | lista paginada (12), `?category=`, `?page=`; JSON se `wantsJson` |
 | POST | `/leads` | leads.store | cria lead |
 | GET | `/leads/etapas` | leads.category-options | categorias da conta, cursor (30) |
@@ -450,6 +454,8 @@ Props Inertia (closures, permitem _partial reload_):
 - `overview`: `totalLeads`; `soldLeads` (= leads em "Finalizado") e `soldPercentage`;
   `soldRevenue` (string decimal `"1234.56"`: soma de `charged_amount` dos leads em "Finalizado", no
   banco em centavos inteiros `SUM(CAST(ROUND(charged_amount * 100) AS BIGINT))`, nulos somam 0, sem float);
+  `soldCardView` (da conta); `potentialLeads`/`potentialRevenue` = contagem e soma em centavos de `potential_amount`
+  não nulo dos leads **fora** de "Finalizado" (1 query); `combinedRevenue` = `soldRevenue` + `potentialRevenue` (centavos);
   `inProgressLeads` **fixo em 0** (prop mantida; card "Em acompanhamento" virou "Meta");
   `goalAmount`/`goalDeadline` (colunas da conta já carregada pelo middleware, sem query extra; nulos sem meta);
   `goalRemaining` = meta − `soldRevenue` em centavos inteiros (pode ser 0 ou negativo; nulo sem meta); `categories` (todas, com
@@ -462,7 +468,7 @@ Props Inertia (closures, permitem _partial reload_):
   `overview.upcomingContacts` = `today` (`Y-m-d` em `REPORTING_TIMEZONE`), `overdueCount` (contagem exata, query
   própria, `next_contact_date < today`) e `leads` (só `id, name, company_name, next_contact_date`; com próximo contato,
   fora de "Finalizado", `next_contact_date` asc + `id` asc, limite `UPCOMING_CONTACTS_LIMIT = 50`). Atrasado = antes
-  de hoje no fuso de relatório; hoje não é atrasado. Orçamento de queries `"leads"` do dashboard: 7.
+  de hoje no fuso de relatório; hoje não é atrasado. Orçamento de queries `"leads"` do dashboard: 8.
 - Tudo calculado no backend, escopado por `account_id`; única lista de registros enviada: a agenda acima (colunas mínimas).
 
 ---
@@ -707,6 +713,7 @@ campaigns.read, campaigns.write, categories.write)` e `invitations` (token só p
 | 2026-11-02 | Card "Total de leads": filtro local por categoria (menu `MetricSelectMenu` extraído do "Novos leads", sem mudança visual nele). Só front, orçamento de queries inalterado. Seções 3.3, 6.6, 13. base e1b3d84 |
 | 2026-11-02 | Tabelas do CLAUDE.md compactadas (só espaços; hash normalizado idêntico, 149938 → ~72k caracteres) e `CLAUDE.md` em `fmt.ignorePatterns`. Regra 0.4 item 14 (tabelas compactas, aviso em 120k, ~2k por tarefa); 0.4 item 10 e 0.6 ajustados. base 26aa6ab |
 | 2026-11-02 | Card "Total de leads": cor da categoria no menu, selecionada no topo, gradiente 15% e `key` fixa (foco preservado). Seções 3.3, 13. base defdb24 |
+| 2026-11-18 | Card "Leads vendidos": lápis com 3 exibições (vendido, potencial, total + potencial) salvas em `accounts.sold_card_view` (migration `2026_11_18_194341`, `PUT /dashboard/vendidos`). Orçamento de queries 7 → 8; testes em `DashboardMetricsTest`. Seções 3.1, 3.3, 3.4, 4, 5, 6.6, 13, 14. base 14ef825 |
 
 ---
 
@@ -767,6 +774,9 @@ Evita rediscutir o que já foi resolvido. Decisão de arquitetura-alvo também e
 - 2026-11-02 | Destaque "hoje" da agenda usa `primary` + `#d3c2f7` (lilás do próximo contato no card de lead), não âmbar | não existe token âmbar no tema do dashboard (só em `verify-email`, fora do tema); regra 0.3/prompt pedem token existente | âmbar novo
 - 2026-11-02 | Atrasado calculado contra `today` do servidor (`reporting.timezone`) usando `contactDeadline()` existente | pedido: fuso do projeto, não do navegador; reaproveita rótulos do card | `localCivilDate()` do navegador
 - 2026-11-02 | Tabelas compactas + CLAUDE.md fora do `vp fmt` (`ignorePatterns`); aviso em 120k | ~72k de 150k eram espaços de alinhamento do formatador | mover changelog/10.1 para `docs/`; `proseWrap: "never"` (só compacta tabela > 80 colunas e junta a prosa em uma linha)
+- 2026-11-18 | Valor potencial soma só leads fora de "Finalizado" com `potential_amount` não nulo | escolha do usuário: evita contar duas vezes o lead vendido em "Total + potencial" | somar todos os leads
+- 2026-11-18 | Exibição do card vendidos salva na conta (`accounts.sold_card_view`, string + allowlist) | pedido: "salvo em sua conta"; hoje 1 owner por conta; string evita migration de enum ao crescer | coluna em `users`; enum no banco; `localStorage`
+- 2026-11-18 | Orçamento de queries `"leads"` do dashboard sobe de 7 para 8 | soma do potencial = 1 query constante escopada por `account_id` | fundir na query do faturamento (alteraria cálculo existente)
 - 2026-10-30 | Medição de referência atualizada: CLAUDE.md com 9117 palavras, 133657 caracteres (wc -w / wc -m), após mover o Anexo | nova base para o aviso de crescimento >15% (0.4 item 10) e para a política de 140k | —
 
 ### 14.5 Ideias e descartes

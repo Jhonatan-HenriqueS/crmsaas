@@ -369,7 +369,7 @@ test('metrics query counts remain bounded as category and lead counts grow', fun
     try {
         $this->actingAs($own->user)->get(route('dashboard'))->assertOk();
         $dashboardQueries = collect(DB::getQueryLog())->filter(fn (array $query): bool => str_contains($query['query'], '"leads"'));
-        expect($dashboardQueries)->toHaveCount(7);
+        expect($dashboardQueries)->toHaveCount(8);
         foreach ($dashboardQueries as $query) {
             expect($query['query'])->toContain('account_id');
             expect($query['bindings'])->toContain($own->account_id);
@@ -445,4 +445,48 @@ test('goals stay inside their account and users without an owned account cannot 
     $outsider = User::factory()->create();
     $this->actingAs($outsider)->put(route('dashboard.goal.update'), ['goal_amount' => '1.00', 'deadline_days' => 1])->assertNotFound();
     $this->delete(route('dashboard.goal.destroy'))->assertNotFound();
+});
+
+test('the sold card view is saved per account and potential value counts only open leads with a potential amount', function () {
+    $own = Membership::factory()->create();
+    $completed = $own->account->leadCategories()->sole();
+    $ordinary = LeadCategory::factory()->for($own->account)->create();
+    Lead::factory()->for($own->account)->for($completed, 'category')->create(['charged_amount' => '1000.10', 'potential_amount' => '9999.99']);
+    Lead::factory()->for($own->account)->for($ordinary, 'category')->create(['potential_amount' => '250.45']);
+    Lead::factory()->for($own->account)->for($ordinary, 'category')->create(['potential_amount' => '0.10']);
+    Lead::factory()->for($own->account)->for($ordinary, 'category')->create(['potential_amount' => null]);
+    $foreign = Membership::factory()->create();
+    Lead::factory()->for($foreign->account)->for(LeadCategory::factory()->for($foreign->account), 'category')->create(['potential_amount' => '777.00']);
+
+    $this->actingAs($own->user)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page
+        ->where('overview.soldCardView', 'sold')->where('overview.potentialLeads', 2)
+        ->where('overview.potentialRevenue', '250.55')->where('overview.combinedRevenue', '1250.65'));
+
+    $this->put(route('dashboard.sold-view.update'), ['view' => 'combined'])->assertRedirect(route('dashboard'));
+    expect($own->account->fresh()->sold_card_view)->toBe('combined');
+    $this->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page->where('overview.soldCardView', 'combined'));
+    $this->put(route('dashboard.sold-view.update'), ['view' => 'potential'])->assertSessionHasNoErrors();
+    expect($own->account->fresh()->sold_card_view)->toBe('potential');
+
+    $this->actingAs($foreign->user)->get(route('dashboard'))->assertInertia(fn (Assert $page) => $page
+        ->where('overview.soldCardView', 'sold')->where('overview.potentialLeads', 1)->where('overview.potentialRevenue', '777.00'));
+});
+
+test('invalid sold card views are rejected without changing the saved view', function (array $payload, string $field) {
+    $own = Membership::factory()->create();
+    $own->account->update(['sold_card_view' => 'potential']);
+
+    $this->actingAs($own->user)->putJson(route('dashboard.sold-view.update'), $payload)
+        ->assertUnprocessable()->assertJsonValidationErrors($field);
+
+    expect($own->account->fresh()->sold_card_view)->toBe('potential');
+})->with([
+    'missing view' => [[], 'view'],
+    'unknown view' => [['view' => 'lucro'], 'view'],
+    'array view' => [['view' => ['sold']], 'view'],
+    'authority field' => [['view' => 'sold', 'account_id' => 999], 'form'],
+]);
+
+test('users without an owned account cannot change the sold card view', function () {
+    $this->actingAs(User::factory()->create())->put(route('dashboard.sold-view.update'), ['view' => 'combined'])->assertNotFound();
 });

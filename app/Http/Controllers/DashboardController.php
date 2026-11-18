@@ -9,6 +9,7 @@ use App\Models\LeadCategory;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -46,6 +47,7 @@ class DashboardController extends Controller
     /**
      * @return array{
      *     source: string, totalLeads: int, inProgressLeads: int, soldLeads: int, soldPercentage: float, soldRevenue: string,
+     *     soldCardView: string, potentialLeads: int, potentialRevenue: string, combinedRevenue: string,
      *     goalAmount: string|null, goalDeadline: string|null, goalRemaining: string|null,
      *     reportingTimezone: string, weeklyTotal: int,
      *     categories: list<array{id: int, name: string, color: string, count: int, percentage: float}>,
@@ -63,6 +65,10 @@ class DashboardController extends Controller
         $sold = (int) ($soldCategory?->getAttribute('leads_count') ?? 0);
         $soldCents = $soldCategory === null ? 0 : (int) $account->leads()->toBase()->where('category_id', $soldCategory->id)
             ->selectRaw('COALESCE(SUM(CAST(ROUND(charged_amount * 100) AS BIGINT)), 0) AS cents')->value('cents');
+        $potential = $account->leads()->toBase()->whereNotNull('potential_amount')
+            ->when($soldCategory, fn (QueryBuilder $query, LeadCategory $category) => $query->where('category_id', '!=', $category->id))
+            ->selectRaw('COUNT(*) AS leads, COALESCE(SUM(CAST(ROUND(potential_amount * 100) AS BIGINT)), 0) AS cents')->first();
+        $potentialCents = (int) ($potential->cents ?? 0);
         $categories = $records
             ->map(static function (LeadCategory $category) use ($total): array {
                 $count = (int) $category->getAttribute('leads_count');
@@ -84,6 +90,10 @@ class DashboardController extends Controller
             'soldLeads' => $sold,
             'soldPercentage' => $total > 0 ? round($sold / $total * 100, 1) : 0.0,
             'soldRevenue' => $this->money($soldCents),
+            'soldCardView' => $account->sold_card_view,
+            'potentialLeads' => (int) ($potential->leads ?? 0),
+            'potentialRevenue' => $this->money($potentialCents),
+            'combinedRevenue' => $this->money($soldCents + $potentialCents),
             'goalAmount' => $account->goal_amount,
             'goalDeadline' => $account->goal_deadline?->toDateString(),
             'goalRemaining' => $account->goal_amount === null ? null : $this->money((int) str_replace('.', '', $account->goal_amount) - $soldCents),

@@ -7,6 +7,10 @@ export type DashboardData = {
     soldLeads: number;
     soldPercentage: number;
     soldRevenue: string;
+    soldCardView: DashboardSoldView;
+    potentialLeads: number;
+    potentialRevenue: string;
+    combinedRevenue: string;
     goalAmount: string | null;
     goalDeadline: string | null;
     goalRemaining: string | null;
@@ -35,6 +39,15 @@ export type DashboardUpcomingContacts = {
 };
 
 export type DashboardNewLeads = { period: DashboardPeriod; count: number };
+
+export type DashboardSoldView = 'sold' | 'potential' | 'combined';
+
+export const dashboardSoldViews: { value: DashboardSoldView; label: string }[] =
+    [
+        { value: 'sold', label: 'Total vendido' },
+        { value: 'potential', label: 'Valor potencial' },
+        { value: 'combined', label: 'Total + potencial' },
+    ];
 
 export const dashboardPeriods: { value: DashboardPeriod; label: string }[] = [
     { value: 'month', label: 'Último mês' },

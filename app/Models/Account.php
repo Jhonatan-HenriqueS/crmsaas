@@ -17,14 +17,20 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $name
  * @property string|null $goal_amount
  * @property CarbonImmutable|null $goal_deadline
+ * @property string $sold_card_view
  */
-#[Fillable(['type', 'name', 'goal_amount', 'goal_deadline'])]
+#[Fillable(['type', 'name', 'goal_amount', 'goal_deadline', 'sold_card_view'])]
 class Account extends Model
 {
     /** @use HasFactory<AccountFactory> */
     use HasFactory;
 
     public const TYPES = ['empresa', 'agencia'];
+
+    public const SOLD_CARD_VIEWS = ['sold', 'potential', 'combined'];
+
+    /** @var array<string, string> */
+    protected $attributes = ['sold_card_view' => 'sold'];
 
     /** @return array<string, string> */
     protected function casts(): array

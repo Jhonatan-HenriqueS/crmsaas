@@ -27,10 +27,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
+import { update as updateSoldView } from '@/routes/dashboard/sold-view';
 import {
     dashboardCardClass,
     dashboardEditButtonClass,
     dashboardPeriods,
+    dashboardSoldViews,
     formatCount,
     formatPercentage,
 } from './dashboard-data';
@@ -38,6 +40,7 @@ import type {
     DashboardData,
     DashboardNewLeads,
     DashboardPeriod,
+    DashboardSoldView,
 } from './dashboard-data';
 
 export function DashboardMetrics({
@@ -48,8 +51,11 @@ export function DashboardMetrics({
     newLeads: DashboardNewLeads;
 }) {
     const [loading, setLoading] = useState(false);
+    const [savingSoldView, setSavingSoldView] = useState(false);
     const [categoryId, setCategoryId] = useState('all');
     const pending = useRef(false);
+    const soldViewPending = useRef(false);
+    const soldView = data.soldCardView;
     const period = newLeads.period;
     const category = data.categories.find(
         (option) => String(option.id) === categoryId,
@@ -77,6 +83,51 @@ export function DashboardMetrics({
             },
         );
     }
+    function selectSoldView(value: string) {
+        const view = dashboardSoldViews.find(
+            (option) => option.value === value,
+        )?.value;
+        if (!view || soldViewPending.current || view === soldView) return;
+        soldViewPending.current = true;
+        setSavingSoldView(true);
+        router.put(
+            updateSoldView.url(),
+            { view },
+            {
+                only: ['overview'],
+                preserveState: true,
+                preserveScroll: true,
+                preserveUrl: true,
+                onFinish: () => {
+                    soldViewPending.current = false;
+                    setSavingSoldView(false);
+                },
+            },
+        );
+    }
+    const soldCard: Record<
+        DashboardSoldView,
+        { title: string; value: string; label: string; green: boolean }
+    > = {
+        sold: {
+            title: 'Leads vendidos',
+            value: formatLeadMoney(data.soldRevenue),
+            label: `${formatPercentage(data.soldPercentage)} do total de leads · ${formatCount(data.soldLeads)} ${data.soldLeads === 1 ? 'lead vendido' : 'leads vendidos'}`,
+            green: true,
+        },
+        potential: {
+            title: 'Valor potencial',
+            value: formatLeadMoney(data.potentialRevenue),
+            label: `${formatCount(data.potentialLeads)} ${data.potentialLeads === 1 ? 'lead em aberto com valor potencial' : 'leads em aberto com valor potencial'}`,
+            green: false,
+        },
+        combined: {
+            title: 'Vendidos + potencial',
+            value: formatLeadMoney(data.combinedRevenue),
+            label: `Vendido ${formatLeadMoney(data.soldRevenue)} · potencial ${formatLeadMoney(data.potentialRevenue)}`,
+            green: true,
+        },
+    };
     const periodLabel = dashboardPeriods.find(
         (option) => option.value === period,
     )?.label;
@@ -154,12 +205,20 @@ export function DashboardMetrics({
         },
         {
             id: 'sold',
-            title: 'Leads vendidos',
-            value: formatLeadMoney(data.soldRevenue),
-            label: `${formatPercentage(data.soldPercentage)} do total de leads · ${formatCount(data.soldLeads)} ${data.soldLeads === 1 ? 'lead vendido' : 'leads vendidos'}`,
+            title: soldCard[soldView].title,
+            value: soldCard[soldView].value,
+            label: soldCard[soldView].label,
+            green: soldCard[soldView].green,
             icon: CircleDollarSign,
-            green: true,
             fit: true,
+            menu: {
+                heading: 'Exibir no card',
+                ariaLabel: 'Alterar o valor exibido nos leads vendidos',
+                value: soldView,
+                options: dashboardSoldViews,
+                disabled: savingSoldView,
+                onValueChange: selectSoldView,
+            },
         },
     ];
 
